@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package opa.threading.master;
+
+message RetVal{
+    int32 code=1;
+
+}
+
+
+message RunnerParams {
+    string launcher_hostname = 1;
+    string runner_options=2;
+}
+
+service Master {
+    rpc LaunchJob (RunnerParams) returns (RetVal) {}
+}

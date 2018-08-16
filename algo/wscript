@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder, opa_waf
+
+x = WafBuilder(globals())
+
+
+x.register_libs(x.libs.Common_N)
+x.auto()
+x.get(x.typ.LIB).update(register_name=x.libs.Algo_N, features='cxxshlib')
+x.get(x.typ.SWIG).update(register_name=x.libs.SwigAlgo_N, install=True)
+
+x.setup()

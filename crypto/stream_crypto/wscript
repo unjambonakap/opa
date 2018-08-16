@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder
+
+x = WafBuilder(globals())
+x.register_libs(x.libs.Common_N, x.libs.Crypto_N, x.libs.Threading_N,
+                x.libs.MathCommon_N, x.libs.OR_N, x.libs.CryptoLa_N,
+                x.packages.GSL)
+x.auto()
+x.get(x.typ.LIB).update(register_name=x.libs.CryptoStream_N,
+                        features='cxxshlib',
+                        install=True)
+
+x.setup()

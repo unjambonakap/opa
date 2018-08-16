@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder
+
+x = WafBuilder(globals())
+
+x.register_libs(x.packages.Glm, x.libs.Common_N, x.libs.MathCommon_N, x.libs.OR_N,
+                x.packages.OpenCV, x.libs.Algo_N, x.packages.CGAL)
+x.auto()
+x.get(x.typ.LIB).update(register_name=x.libs.MathGame_N, features='cxxshlib')
+x.get(x.typ.PROTO).update(register_name=x.libs.MathGameProto_N)
+x.get(x.typ.PROTO_PYTHON).update()
+x.get(x.typ.SWIG_H).update(register_name=x.libs.MathGameSwig_N, libs=[x.libs.SwigCommon_N, x.libs.ORSwig_N, x.libs.SwigCommon2H_N, x.libs.SwigMathCommon_N])
+x.get(x.typ.SWIG).update(install=True, sources=['./swig/math_game_swig.i'], append=False).update(libs=[x.libs.MathGameSwig_N])
+
+x.setup()

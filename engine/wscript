@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder
+
+x = WafBuilder(globals())
+x.register_libs(x.libs.lodepng_N, x.packages.GLFW, x.packages.Glm, x.packages.GLU, x.packages.EGL, x.packages.GL,
+                x.packages.GDAL, x.packages.Glew, x.packages.PocoFoundation,
+                x.libs.MathGame_N, x.libs.MathCommon_N, x.libs.Threading_N,
+                x.libs.Common_N, x.packages.Gflags)
+
+x.auto()
+x.get(x.typ.LIB).update(register_name=x.libs.Engine_N,
+                        includes='./inc/opa/engine',
+                        features='cxxshlib')
+x.get(x.typ.SWIG).update(register_name=x.libs.PyEngine_N,
+                         install=True,
+                         use_global=False,
+                         libs=[x.libs.Engine_N, x.libs.MathGameSwig_N, x.libs.SwigCommon2H_N])
+x.get(x.typ.PROTO_PYTHON).update()
+x.setup()

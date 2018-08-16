@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+
+import os
+from chdrft.waf.opa import WafBuilder
+
+
+generated_folder = 'generated/arch/x86_64/'
+arch_folder = './arch/x86_64/'
+incs = [
+    os.path.join(generated_folder, 'inc'), os.path.join(arch_folder), './inc'
+]
+incs.append('./bionic/include')
+incs.append('./bionic/uapi')
+incs.append('./bionic/uapi/asm-x86_64/')
+
+x = WafBuilder(globals())
+x.auto_asm(base_dir=generated_folder)
+
+x.get(x.typ.ASM).update(register_name=x.libs.Syscalls_N, exports=incs, libs=x.libs.Common_N)
+x.setup()

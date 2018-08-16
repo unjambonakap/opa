@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package opa.engine.mipmapgen;
+
+message Empty {}
+
+message Data {
+  string filename = 1;
+  string dest = 2;
+}

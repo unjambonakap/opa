@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder
+
+x = WafBuilder(globals())
+
+x.register_libs([x.packages.GMP, x.packages.MPFR, x.libs.Common_N, x.libs.OR_N])
+x.auto()
+x.get(x.typ.LIB).update(register_name=x.libs.MathCommon_N,
+                        includes='./inc/opa/math',
+                        features='cxxshlib',
+                        basename='mathcommon')
+x.auto_lib(base_dir='./swig_base', ).update(register_name=x.libs.SwigMathCommon_N, libs=x.libs.SwigCommon_N)
+x.get(x.typ.SWIG).update(install=True, libs=x.libs.SwigMathCommon_N)
+x.setup()

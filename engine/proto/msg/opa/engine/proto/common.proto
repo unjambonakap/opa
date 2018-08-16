@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package opa.engine.proto;
+import "google/protobuf/any.proto";
+
+enum Format {
+  RGB = 0;
+  GREY = 1;
+};
+
+message Texture {
+  Format format = 1;
+  int32 width = 2;
+  int32 height = 3;
+  bytes data = 4;
+};
+
+message MmqtNode {
+  int32 xo = 1;
+  int32 yo = 2;
+  int32 w = 3;
+  int32 h = 4;
+  int32 img_w = 5;
+  int32 img_h = 6;
+  string resource = 7;
+  int32 id = 8;
+  repeated int32 children = 9;
+  // google.protobuf.Any data = 10;
+};
+
+message Mmqt {
+  int32 root = 1;
+  repeated MmqtNode nodes = 2;
+};
+
+message GdalData {
+  float x = 1;
+  float y = 2;
+  float dx = 3;
+  float dy = 4;
+  float a1 = 5;
+  float a2 = 6;
+  int32 nx = 7;
+  int32 ny = 8;
+  Mmqt mmqt = 9;
+};
+
+
+message Pos {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message MeshFaceGraph {
+  uint32 id = 1;
+  Pos pos = 2;
+  repeated uint32 adj = 3;
+}
+
+message MeshFaceGraphList {
+  repeated MeshFaceGraph face = 1;
+}

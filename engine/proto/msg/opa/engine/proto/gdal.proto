@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package opa.engine.proto;
+
+import "opa/engine/proto/common.proto";
+
+message GdalEntry {
+  Texture tex = 1;
+  double origin_x = 2;
+  double origin_y = 3;
+  double pixel_dx = 4;
+  double pixel_dy = 5;
+}

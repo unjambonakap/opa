@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package opa.utils;
+import "google/protobuf/any.proto";
+
+message BaseString { bytes x = 1; }
+
+message BaseInt32 { int32 x = 1; }
+message BaseInt64 { int64 x = 1; }
+message BaseFloat { float x = 1; }
+message BaseDouble { double x = 1; }
+message BaseBool { bool x = 1; }
+message BaseChar { int32 x = 1; }
+
+message AnyMsg { repeated google.protobuf.Any any = 1; }
+

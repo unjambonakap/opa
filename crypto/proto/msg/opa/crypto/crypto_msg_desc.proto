@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package opa.crypto.protobuf;
+
+message DlpInit {
+  string n = 100;
+  string order = 101;
+  string g = 102;
+  string y = 103;
+}
+message DlpData {
+  string suborder = 100;
+  int32 suborder_pw = 101;
+}
+message DlpRes { string res = 100; }

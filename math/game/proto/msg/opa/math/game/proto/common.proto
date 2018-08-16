@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package opa.math.game.proto;
+import "google/protobuf/any.proto";
+
+message Pos {
+  float x = 1;
+  float y = 2;
+  float z = 3;
+}
+
+message Color {
+  float r = 1;
+  float g = 2;
+  float b = 3;
+  string desc = 4;
+}
+
+message MeshFace {
+  repeated Pos vertex = 1;
+}
+
+message MeshFaceGraph {
+  uint32 id = 1;
+  Pos pos = 2;
+  repeated uint32 adj = 3;
+}
+
+message MeshFaceGraphList {
+  repeated MeshFaceGraph face = 1;
+}
+
+message Mesh {
+  string name = 1;
+  bytes stl_content = 2;
+  repeated MeshFace face = 3;
+  Color col = 4;
+}
+
+message MeshList {
+  repeated Mesh mesh = 1;
+}
