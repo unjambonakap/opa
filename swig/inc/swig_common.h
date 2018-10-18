@@ -32,6 +32,7 @@ struct swig_tsf_data {
   u8 *tsf_str(PyObject *init, bool owned = false) {
     add_obj(init, owned);
     if (PyUnicode_Check(init)) add_obj(PyUnicode_AsUTF8String(init), true);
+    if (PyByteArray_Check(init)) add_obj(PyBytes_FromObject(init), true);
     if (!PyBytes_Check(objs.back().first)) {
       PyErr_SetString(PyExc_ValueError, "Expected a bytes shit");
       ok = false;
@@ -43,7 +44,7 @@ struct swig_tsf_data {
   }
 
   std::string *get_str(PyObject *init, bool owned = false) {
-    get_u8(init, owned);
+    if (!get_u8(init, owned)) return nullptr;
     str = std::string((const char *)str_buf, n);
     return &str;
   }

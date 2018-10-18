@@ -10,7 +10,7 @@ class X86Compiler;
 class JitRuntime;
 }
 
-OPA_NAMESPACE(opa, crypto, la)
+OPA_NAMESPACE_DECL3(opa, crypto, la)
 class CipherNode;
 class CipherBlock;
 class JitUtil;
@@ -68,4 +68,4 @@ private:
   bool m_is_debug = false;
 };
 
-OPA_NAMESPACE_END(opa, crypto, la)
+OPA_NAMESPACE_DECL3_END

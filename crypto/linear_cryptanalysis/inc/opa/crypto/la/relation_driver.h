@@ -37,7 +37,7 @@ public:
   virtual void fini() override { m_data.fini(); }
 
   virtual bool should_add_rel(const Relation::RelationCost &cost) override {
-    if (cost.prob() < 1.)
+    if (cost.bias() < m_thresh)
       return false;
     return m_data.should_add(cost);
   }

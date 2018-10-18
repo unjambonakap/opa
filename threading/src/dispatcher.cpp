@@ -82,8 +82,9 @@ void Dispatcher::run() {
       break;
     }
 
-    if (!m_job->server_want_more_results())
+    if (!m_job->server_want_more_results()){
       break;
+    }
   }
   m_data_queue.release();
   fflush(stdout);
@@ -100,7 +101,6 @@ DataId Dispatcher::get_work_cb(JobMsgPtr work, bool &out_more) {
 void Dispatcher::process_job(Job &job) {
   m_job = &job;
   m_job_id = job.get_job_id();
-  OPA_DISP("DISPATCHING JOb .. ", m_job_id);
   m_job->reset();
   m_has_more = true;
   m_data_queue.reset();

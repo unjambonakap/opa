@@ -8,7 +8,7 @@
 #include <opa/utils/misc.h>
 #include <opa_common.h>
 
-OPA_NAMESPACE(opa, crypto, la)
+OPA_NAMESPACE_DECL3(opa, crypto, la)
 typedef opa::math::common::BitVec BitVec;
 typedef opa::math::common::RangeCoverage RangeCoverage;
 typedef opa::math::common::Basis Basis;
@@ -95,28 +95,25 @@ struct CallInfo {
 struct Relation {
   struct RelationCost {
     static constexpr double kEps = 1e-8;
-    friend std::ostream &operator<<(std::ostream &os, const RelationCost &r) {
-      os << RAW_OPA_DISP_VARS(r.m_prob);
-      return os;
-    }
+    OPA_DECL_COUT_OPERATOR3(RelationCost, m_bias);
 
-    bool operator<(const RelationCost &x) const { OPA_LT_OP(x, m_prob); }
+    bool operator<(const RelationCost &x) const { OPA_LT_OP(x, m_bias); }
 
-    bool is_exact() const { return m_prob >= 1 - kEps; }
+    bool is_exact() const { return m_bias >= 1 - kEps; }
     void from_count(int cnt, int sz) {
-      this->m_prob = 2 * fabs(1. * cnt / sz - 0.5);
+      this->m_bias = 2 * fabs(1. * cnt / sz - 0.5);
     }
     void from_walsh_count(int cnt, int sz) {
-      this->m_prob = fabs(1. * cnt / sz);
+      this->m_bias = fabs(1. * cnt / sz);
     }
-    double bias() const { return m_prob; }
+    double bias() const { return m_bias; }
 
-    void set_prob(double p) { this->m_prob = p; }
-    OPA_ACCESSOR_R(double, m_prob, prob);
+    void set_bias(double p) { this->m_bias = p; }
+    OPA_ACCESSOR_R(double, m_bias, prob);
 
   private:
     // TODO: rename to bias
-    double m_prob = 0.;
+    double m_bias = 0.;
   };
 
   bool operator==(const Relation &a) const {
@@ -124,11 +121,8 @@ struct Relation {
   }
 
   bool operator<(const Relation &a) const { OPA_LT_OP(a, in, out, cost); }
+  OPA_DECL_COUT_OPERATOR3(Relation, in, out, c, cost);
 
-  friend std::ostream &operator<<(std::ostream &os, const Relation &r) {
-    os << RAW_OPA_DISP_VARS(r.in, r.out, r.c, r.cost);
-    return os;
-  }
 
   struct CmpVecByCost {
     bool operator()(const Relation &a, const Relation &b) const {
@@ -186,6 +180,7 @@ struct Relations : public opa::utils::Initable {
     os << v.diff_basis;
     return os;
   }
+  OPA_DECL_STR_FROM_COUT();
 
   bool diff;
 };
@@ -393,4 +388,4 @@ private:
       ->instanciate<cl>(true)                                                  \
       .release();                                                              \
   })
-OPA_NAMESPACE_END(opa, crypto, la)
+OPA_NAMESPACE_DECL3_END

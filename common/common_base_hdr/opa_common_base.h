@@ -178,11 +178,23 @@
 #define OPA_DECL_LT_OPERATOR(CL, ...)                                          \
   bool operator<(const CL &other) const { OPA_LT_OP(other, __VA_ARGS__); }
 
+#define OPA_DECL_COUT_OPERATOR3(CL, ...)                                       \
+  std::string str() const {                                                    \
+    return OPA_STREAM_STR(RAW_OPA_DISP_VARS(__VA_ARGS__));                     \
+  }                                                                            \
+  friend std::ostream &operator<<(std::ostream &os, const CL &a) {             \
+    os << a.str();                                                             \
+    return os;                                                                 \
+  }
+
 #define OPA_DECL_COUT_OPERATOR(CL)                                             \
   friend std::ostream &operator<<(std::ostream &os, const CL &a) {             \
     os << a.str();                                                             \
     return os;                                                                 \
   }
+
+#define OPA_DECL_STR_FROM_COUT()                                             \
+  std::string str() const { return OPA_STREAM_STR(*this); }
 
 #define OPA_DECL_COUT_OPERATOR2(CL, ...)                                       \
   friend std::ostream &operator<<(std::ostream &os, const CL &a) {             \

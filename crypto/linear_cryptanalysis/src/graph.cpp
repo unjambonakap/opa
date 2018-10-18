@@ -28,7 +28,7 @@ void IdBlock::do_get_relations(Relations &rels) const {
     Relation r;
     r.out.add(i);
     r.in.add(i);
-    r.cost.set_prob(1);
+    r.cost.set_bias(1);
     rels.add_rel(r);
   }
 }
@@ -484,7 +484,7 @@ void CipherGraph::do_get_relations_diff(Relations &rels) const {
   for (auto &v : m_diff_data.res_vec) {
     Relation r;
     // TODO: temp
-    r.cost.set_prob(1.);
+    r.cost.set_bias(1.);
 
     REP (i, data.size()) {
       if (data[i].is_mid())
@@ -573,7 +573,7 @@ void CipherGraph::do_get_relations(Relations &rels) const {
 
   for (auto &x : storer.rels) {
     Relation::RelationCost cost;
-    cost.set_prob(x.cost);
+    cost.set_bias(x.cost);
     if (!driver()->should_add_rel(cost))
       continue;
 

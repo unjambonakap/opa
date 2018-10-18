@@ -54,7 +54,7 @@ public:
     return m_xinv;
   }
 
-  void set_prev() { m_state = m_ring.mul(m_xinv, m_state); }
+  void set_prev() { m_state = m_ring.mul(get_xinv(), m_state); }
   void advance(opa::math::common::bignum v) {
     TExt y = m_x;
     if (v < 0) {
@@ -69,6 +69,14 @@ public:
     m_state = m_ring.mul(m_x, m_state);
     return res;
   }
+  T get_next_v2() {
+    std::vector<T> tmp = m_state.to_vec(m_n);
+    REP(i, m_n) tmp[i] = m_state.get_safe(i+1);
+    T output = m_state.get(0);
+    FOR(i,1, m_n) tmp[i] = m_field->add(tmp[i], m_field->mul(m_poly.get_safe(i+1), output));
+    m_state = m_pr.import(tmp);
+    return output;
+  }
 
   T get_next_non_galois() {
     T res = m_field->getZ();
@@ -79,6 +87,21 @@ public:
     m_pr.set1(m_state, 0, res);
     return res;
   }
+
+  T get_next_non_galois2() {
+    T res = m_field->getZ();
+    T output = m_state.get_safe(0);
+
+    std::vector<T> tmp = m_state.to_vec(m_n);
+    REP (i, m_poly.deg()) {
+      res = m_field->add(res, m_field->mul(m_poly[i], m_state.get_safe(i)));
+      tmp[i] = m_state.get_safe(i+1);
+    }
+    tmp[m_poly.deg()-1] = res;
+    m_state = m_pr.import(tmp);
+    return output;
+  }
+
 
   T get_next_non_galois_gps_style() {
     T res = m_state.get_safe(m_poly.deg() - 1);

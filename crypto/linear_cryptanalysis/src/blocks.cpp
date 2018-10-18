@@ -149,7 +149,7 @@ void ExpansionBlock::do_get_relations(Relations &rels) const {
 
     r.in = { m_ed.from(i) };
     r.out = { i };
-    r.cost.set_prob(1);
+    r.cost.set_bias(1);
     rels.add_rel(r);
   }
 }
@@ -246,7 +246,7 @@ void XorBlock::do_get_relations(Relations &rels) const {
     r.in.add(i);
     r.in.add(m_blk_size + i);
     r.out.add(i);
-    r.cost.set_prob(1);
+    r.cost.set_bias(1);
     rels.add_rel(r);
   }
 }
@@ -271,7 +271,7 @@ void PermutationBlock::do_get_relations(Relations &rels) const {
     Relation r;
     r.in.add(i);
     r.out.add(m_perm.get(i));
-    r.cost.set_prob(1);
+    r.cost.set_bias(1);
     rels.add_rel(r);
   }
 }

@@ -66,6 +66,7 @@ void CipherBlock::get_relations_dumb(Relations &rels) const {
         cnt += opa::utils::dot(i, k) ^ opa::utils::dot((u32)j, evals[k]);
       Relation::RelationCost cost;
       cost.from_count(cnt, 1 << input_size());
+      OPA_DISP0("REL >> ", i, j, cnt, 1<<input_size(), cost.bias());
       if (!driver()->should_add_rel(cost))
         continue;
 
@@ -139,6 +140,7 @@ void CipherBlock::get_relations_walsh(Relations &rels) const {
     FOR (i, 1, 1 << input_size()) {
       Relation::RelationCost cost;
       cost.from_walsh_count(tb[i], 1 << input_size());
+      OPA_DISP0(cost.bias());
       if (!driver()->should_add_rel(cost))
         continue;
       Relation rel;

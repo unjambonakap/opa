@@ -3,7 +3,7 @@
 #include <opa/crypto/la/base.h>
 #include <opa_common.h>
 
-OPA_NAMESPACE(opa, crypto, la)
+OPA_NAMESPACE_DECL3(opa, crypto, la)
 
 class SboxDesc : public opa::utils::Initable {
 public:
@@ -288,4 +288,4 @@ public:
 private:
   virtual void init(const PermutationDesc &perm, bool fast_eval) override {}
 };
-OPA_NAMESPACE_END(opa, crypto, la)
+OPA_NAMESPACE_DECL3_END

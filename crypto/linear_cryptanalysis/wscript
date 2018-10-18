@@ -10,4 +10,5 @@ x.get(x.typ.LIB).update(register_name=x.libs.CryptoLa_N,
                         features='cxxshlib',
                         install=True)
 
+x.get(x.typ.SWIG).update(install=True, libs=x.libs.SwigMathCommon_N)
 x.setup()

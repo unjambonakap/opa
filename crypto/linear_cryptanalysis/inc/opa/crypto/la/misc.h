@@ -4,7 +4,7 @@
 #include <opa/crypto/la/relation_driver.h>
 #include <opa/crypto/la/blocks.h>
 
-OPA_NAMESPACE(opa, crypto, la)
+OPA_NAMESPACE_DECL3(opa, crypto, la)
 
 template <int N> class FealGBlockN : public CipherGraph {
 public:
@@ -202,4 +202,4 @@ template <> u64 FealFBoxBlock::fast_eval2(u64 a, u64 b) const {
   return res.v32;
 }
 
-OPA_NAMESPACE_END(opa, crypto, la)
+OPA_NAMESPACE_DECL3_END

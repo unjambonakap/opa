@@ -506,7 +506,7 @@ public:
   virtual void init(int n) {
     opa::utils::Initable::init();
     this->n = n;
-    m_mat.init(1, n);
+    m_mat.init(n, 1);
   }
   void setz(){m_mat.setz();}
 
@@ -617,9 +617,9 @@ public:
 
   int size() const { return m_mat.M; }
 
-  u32 get(int a) const { return m_mat.get(0, a); }
-  void set(int a, int v) { m_mat.set(0, a, v); }
-  void toggle(int a) { m_mat.toggle(0, a); }
+  u32 get(int a) const { return m_mat.get(a, 0); }
+  void set(int a, int v) { m_mat.set(a,0, v); }
+  void toggle(int a) { m_mat.toggle(a, 0); }
   void xorv(int a, int v) {
     if (v) toggle(a);
   }
@@ -650,6 +650,10 @@ public:
     BitVec res = *this;
     return res.sxorz(peer);
   }
+  void xorz(u64 *target) const {
+    REP(i, m_mat.tb.size()) target[i] ^= this->m_mat.tb[i];
+  }
+
   BitVec xorz(const RangeCoverage &x) const { return BitVec(*this).sxorz(x); }
 
   BitVec &sxorz(const BitVec &peer) {
