@@ -1,6 +1,6 @@
 #pragma once
-#include <opa_common.h>
 #include <opa/crypto/cracker_job.h>
+#include <opa_common.h>
 
 OPA_NM_CRYPTO_CRACKER
 
@@ -34,19 +34,40 @@ struct PatternCheckerParams : public opa::utils::ProtobufParams {
     tb.clear();
     REP (i, str.size()) { tb.pb(MP(i + pos, str[i])); }
   }
+
+  bool check(const std::string &str) const {
+    OPA_CHECK0(!tb.empty());
+    if (tb[0].ST == -1) {
+      int mv = tb.back().ST + 1;
+      REP (i, mv + 1) {
+        REP (j, tb.size()) {
+          if (str[i + tb[j].ST + 1] != tb[j].ND) goto bad;
+        }
+        return true;
+      bad:;
+      }
+      return false;
+    } else {
+      for (const auto &x : tb) {
+        if (str.size() <= x.ST) return false;
+        if (str[x.ST] != x.ND) return false;
+      }
+      return true;
+    }
+  }
   OPA_TGEN_IMPL(tb);
+};
+
+struct MultiplePatternCheckerParams : public opa::utils::ProtobufParams {
+  std::vector<PatternCheckerParams> cx;
+  OPA_SETTER(std::vector<PatternCheckerParams>, cx, cx);
+  OPA_TGEN_IMPL(cx);
 };
 
 class PatternChecker : public CrackerChecker {
 public:
   virtual bool operator()(const std::string &str) const override {
-    for (const auto &x : m_params.tb) {
-      if (str.size() <= x.ST)
-        return false;
-      if (str[x.ST] != x.ND)
-        return false;
-    }
-    return true;
+    return m_params.check(str);
   }
 
   OPACS_GETTER_BY_CL(PatternChecker);
@@ -55,6 +76,22 @@ public:
 
 private:
   PatternCheckerParams m_params;
+};
+
+class MultiplePatternChecker : public CrackerChecker {
+public:
+  virtual bool operator()(const std::string &str) const override {
+    for (auto &c : m_params.cx)
+      if (c.check(str)) return true;
+    return false;
+  }
+
+  OPACS_GETTER_BY_CL(MultiplePatternChecker);
+  OPA_SETTER(MultiplePatternCheckerParams, m_params, params);
+  OPA_TGEN_IMPL(m_params);
+
+private:
+  MultiplePatternCheckerParams m_params;
 };
 
 OPA_NM_CRYPTO_CRACKER_END

@@ -42,6 +42,8 @@ using namespace opa::crypto::cracker;
 %shared_ptr(opa::crypto::Hash)
 %shared_ptr(opa::crypto::cracker::PatternChecker)
 %shared_ptr(opa::crypto::cracker::PatternCheckerParams)
+%shared_ptr(opa::crypto::cracker::MultiplePatternChecker)
+%shared_ptr(opa::crypto::cracker::MultiplePatternCheckerParams)
 %shared_ptr(opa::crypto::cracker::CrackerParams)
 %shared_ptr(opa::crypto::cracker::MapperAndCheckerParams)
 %shared_ptr(opa::crypto::cracker::MapperAndChecker)
@@ -58,6 +60,7 @@ using namespace opa::crypto::cracker;
 
 namespace std{
   %template(PatternVector) std::vector<opa::crypto::cracker::Pattern>;
+  %template(PatternCheckerParamsVector) std::vector<opa::crypto::cracker::PatternCheckerParams>;
 }
 
 %apply const ::std::vector<opa::crypto::cracker::Pattern>& {::std::vector<opa::crypto::cracker::Pattern>* };

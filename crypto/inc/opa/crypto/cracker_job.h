@@ -16,7 +16,7 @@ extern std::string CHARSET_ALL;
 struct CrackerParams : public opa::utils::ProtobufParams {
   std::vector<Pattern> patterns;
   std::shared_ptr<CrackerChecker> checker;
-  bool single_res;
+  int n_res;
   OPA_TGEN_IMPL(checker);
 };
 
@@ -24,7 +24,7 @@ class Cracker : public opa::threading::AutoJob<ShardParams, Res> {
 public:
   void init(const CrackerParams &params) {
     m_params = params;
-    m_unit.single_res = params.single_res;
+    m_unit.n_res = params.n_res;
     m_unit.checker = params.checker;
   }
 
@@ -41,7 +41,7 @@ public:
     if (pos == pattern().mp.size()) {
       if (checker()(cur())) {
         m_res.tb.pb(cur());
-        return m_unit.single_res;
+        return m_res.tb.size()  == m_unit.n_res;
       }
       return false;
     }
@@ -78,7 +78,7 @@ public:
   }
 
   virtual bool server_want_more_results() const override {
-    return res().tb.size() == 0 || !m_params.single_res;
+    return res().tb.size() < m_params.n_res;
   }
 
   OPA_ACCESSOR(Pattern, m_unit.pattern, pattern);

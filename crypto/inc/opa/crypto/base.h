@@ -52,9 +52,9 @@ struct ShardParams : public opa::utils::ProtobufParams {
   std::shared_ptr<CrackerChecker> checker;
   std::string cur;
   int pos;
-  bool single_res;
+  int n_res;
 
-  OPA_TGEN_IMPL(pattern, checker, cur, pos, single_res);
+  OPA_TGEN_IMPL(pattern, checker, cur, pos, n_res);
 };
 
 OPA_NM_CRYPTO_CRACKER_END
