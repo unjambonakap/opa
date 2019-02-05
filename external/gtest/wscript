@@ -1,0 +1,16 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder
+
+x = WafBuilder(globals())
+
+x.auto()
+x.create_conf(x.typ.LIB).update(
+    register_name=x.libs.GTest_N,
+    sources='googletest/googletest/src/gtest-all.cc',
+    includes=['./googletest/googletest/include/gtest', './googletest/googletest',
+              './googletest/googletest/include'],
+    exports=['./googletest/googletest/include'],
+    libs=x.packages.PThread)
+
+x.setup()
