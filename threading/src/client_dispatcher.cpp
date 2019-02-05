@@ -24,7 +24,7 @@ void ClientDispatcher::stop() {
 void ClientDispatcher::initialize(const std::string &server_info, int nthread) {
   m_server_info = server_info;
   m_nthread = nthread;
-  // OPA_DISP0("connect to ",server_info);
+  OPA_DISP0("connect to ",server_info);
   m_comm->connect(server_info);
   // OPA_TRACE0;
   m_sys_id = utils::get_process_fingerprint();

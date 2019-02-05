@@ -6,9 +6,13 @@
 #include <opa/math/common/FFT.h>
 #include <opa/math/common/float.h>
 #include <opa/math/common/RealField.h>
+#include <opa/utils/base.h>
+#include <opa/utils/buffer_reader.h>
 
-OPA_NAMESPACE(opa, dsp)
+OPA_NAMESPACE_DECL2(opa, dsp)
 
+using opa::utils::Range;
+using opa::utils::ReaderC8;
 template <typename T> using TFunc = FunctionSptr<T, T>;
 template <typename T> using CTFunc = FunctionSptr<Complex<T>, T>;
 
@@ -126,7 +130,7 @@ std::vector<Complex<T> > fast_correl(const CTFunc<T> &a, const CTFunc<T> &b,
   int n = 1 << npw;
 
   OPA_MATH::FFT2<Complex<T> > fft;
-  OPA_MATH::RealField<Complex<T> > r;
+  OPA_MATH::ComplexField<T> r;
   fft.init(&r, npw, OPA_MATH::FloatUtil::iexp<T>(
                       (OPA_MATH::FloatUtil::get_pi<T>() * 2 / n)));
   std::vector<Complex<T> > d1, d2;
@@ -212,4 +216,4 @@ void to_csv(Stream &s, const std::vector<T> &tb) {
     writer.add(x);
 }
 
-OPA_NAMESPACE_END(opa, dsp)
+OPA_NAMESPACE_DECL2_END

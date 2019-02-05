@@ -87,7 +87,7 @@ public:
   OPA_ACCESSOR(CrackerChecker, *m_unit.checker, checker);
 
   OPA_TGEN_IMPL(m_params);
-  OPA_CLOUDY_JOB_DECL;
+  OPA_CLOUDY_JOB_DECL2(Cracker);
 
 private:
   Res m_res;

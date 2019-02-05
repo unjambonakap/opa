@@ -55,6 +55,9 @@ template <>
 inline void Conv::from_str(const opa::stolen::StringRef &a, int &out) {
   out = toInt(a);
 }
+inline u8 char2hex(u8 x) { return x <= '9' ? x - '0' : x - 'a' + 10; }
+inline u8 hex2char(u8 x) { return x <= 9 ? '0' + x : 'a' + x - 10; }
+inline bool is_hex_char(u8 x) { return (x >= '0' && x <= '9') || (x >= 'a' && x <= 'f'); }
 
 std::string b64e(const std::string &a, int n = -1);
 std::string b64d(const std::string &a);

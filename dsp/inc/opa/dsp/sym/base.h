@@ -3,7 +3,7 @@
 #include <opa_common.h>
 #include <opa/dsp/inc.h>
 
-OPA_NAMESPACE(opa, dsp)
+OPA_NAMESPACE_DECL2(opa, dsp)
 
 template <class R, class... Args>
 class Function : public opa::utils::Initable {
@@ -116,4 +116,4 @@ FunctionSptr<R, Args...> conj(FunctionSptr<R, Args...> f1) {
   });
 }
 
-OPA_NAMESPACE_END(opa, dsp)
+OPA_NAMESPACE_DECL2_END

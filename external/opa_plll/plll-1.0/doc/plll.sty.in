@@ -1,0 +1,6 @@
+\usepackage{hyperref}
+
+\AtBeginDocument{\setcounter{tocdepth}{2}}
+\hypersetup{
+  bookmarksdepth = subsection,
+}

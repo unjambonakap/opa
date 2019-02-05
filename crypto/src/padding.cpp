@@ -1,4 +1,5 @@
 #include <opa/crypto/padding.h>
+#include <opa/utils/string.h>
 
 #include <opa/crypto/base.h>
 
@@ -10,8 +11,8 @@ std::pair<std::string, bool> rpkcs7(StringRef s, int bs) {
 
   std::string res;
   int n = s.size();
-  int x = s[n - 1];
-  if (!x || x > bs) goto fail;
+  int x = (u8)s[n - 1];
+  if (!x || x > bs || x > n) goto fail;
   for (int i = n - 1; i >= n - x; --i)
     if (s[i] != x) goto fail;
   n -= x;
@@ -69,6 +70,11 @@ std::pair<std::string, bool> rpkcs1(StringRef s) {
 
 fail:
   return MP(std::string(), false);
+}
+
+std::string zeropad(opa::stolen::StringRef s, int sz) {
+  OPA_CHECK0(false);
+  return "";
 }
 
 OPA_NM_CRYPTO_END

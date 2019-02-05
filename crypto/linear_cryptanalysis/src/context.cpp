@@ -9,8 +9,10 @@ CipherContext::~CipherContext() {}
 CipherContext::CipherContext() { init(); }
 void CipherContext::init() {
   m_jitutil.reset(new JitUtil());
+  /*
   m_runtime.reset(new asmjit::JitRuntime());
   m_compiler.reset(new asmjit::X86Compiler(m_runtime.get()));
+  */
 }
 void CipherContext::start_evaluate(CipherNode *node) const {
 

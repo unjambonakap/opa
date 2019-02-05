@@ -1,0 +1,124 @@
+--- /home/benoit/programmation/repo/tensorflow/tensorflow/core/platform/default/logging.h	2016-12-04 20:54:29.765119359 +0100
++++ ./glib/platform/default/logging.h	2016-12-04 23:12:18.885113172 +0100
+@@ -16,18 +16,18 @@
+ #ifndef TENSORFLOW_PLATFORM_DEFAULT_LOGGING_H_
+ #define TENSORFLOW_PLATFORM_DEFAULT_LOGGING_H_
+ 
+-// IWYU pragma: private, include "third_party/tensorflow/core/platform/logging.h"
+-// IWYU pragma: friend third_party/tensorflow/core/platform/logging.h
++// IWYU pragma: private, include "third_party/glib/platform/logging.h"
++// IWYU pragma: friend third_party/glib/platform/logging.h
+ 
+ #include <sstream>
+ #include <limits>
+-#include "tensorflow/core/platform/macros.h"
+-#include "tensorflow/core/platform/types.h"
++#include "glib/platform/macros.h"
++#include "glib/platform/types.h"
+ 
+ // TODO(mrry): Prevent this Windows.h #define from leaking out of our headers.
+ #undef ERROR
+ 
+-namespace tensorflow {
++namespace glib {
+ const int INFO = 0;            // base_logging::INFO;
+ const int WARNING = 1;         // base_logging::WARNING;
+ const int ERROR = 2;           // base_logging::ERROR;
+@@ -36,6 +36,7 @@
+ 
+ namespace internal {
+ 
++#ifndef LOG
+ class LogMessage : public std::basic_ostringstream<char> {
+  public:
+   LogMessage(const char* fname, int line, int severity);
+@@ -59,13 +60,13 @@
+ };
+ 
+ #define _TF_LOG_INFO \
+-  ::tensorflow::internal::LogMessage(__FILE__, __LINE__, tensorflow::INFO)
++  ::glib::internal::LogMessage(__FILE__, __LINE__, glib::INFO)
+ #define _TF_LOG_WARNING \
+-  ::tensorflow::internal::LogMessage(__FILE__, __LINE__, tensorflow::WARNING)
++  ::glib::internal::LogMessage(__FILE__, __LINE__, glib::WARNING)
+ #define _TF_LOG_ERROR \
+-  ::tensorflow::internal::LogMessage(__FILE__, __LINE__, tensorflow::ERROR)
++  ::glib::internal::LogMessage(__FILE__, __LINE__, glib::ERROR)
+ #define _TF_LOG_FATAL \
+-  ::tensorflow::internal::LogMessageFatal(__FILE__, __LINE__)
++  ::glib::internal::LogMessageFatal(__FILE__, __LINE__)
+ 
+ #define _TF_LOG_QFATAL _TF_LOG_FATAL
+ 
+@@ -76,7 +77,7 @@
+ 
+ #define VLOG(lvl)      \
+   if (VLOG_IS_ON(lvl)) \
+-  ::tensorflow::internal::LogMessage(__FILE__, __LINE__, tensorflow::INFO)
++  ::glib::internal::LogMessage(__FILE__, __LINE__, glib::INFO)
+ 
+ // CHECK dies with a fatal error if condition is not true.  It is *not*
+ // controlled by NDEBUG, so the check will be executed regardless of
+@@ -188,21 +189,21 @@
+     if (TF_PREDICT_TRUE(v1 op v2))                                        \
+       return NULL;                                                        \
+     else                                                                  \
+-      return ::tensorflow::internal::MakeCheckOpString(v1, v2, exprtext); \
++      return ::glib::internal::MakeCheckOpString(v1, v2, exprtext); \
+   }                                                                       \
+   inline string* name##Impl(int v1, int v2, const char* exprtext) {       \
+     return name##Impl<int, int>(v1, v2, exprtext);                        \
+   }                                                                       \
+   inline string* name##Impl(const size_t v1, const int v2, const char* exprtext) {       \
+     if (TF_PREDICT_FALSE(v2 < 0)) {                                       \
+-       return ::tensorflow::internal::MakeCheckOpString(v1, v2, exprtext);\
++       return ::glib::internal::MakeCheckOpString(v1, v2, exprtext);\
+     }                                                                     \
+     const size_t uval = (size_t)((unsigned)v1);                           \
+     return name##Impl<size_t, size_t>(uval, v2, exprtext);                \
+   }                                                                       \
+   inline string* name##Impl(const int v1, const size_t v2, const char* exprtext) {       \
+     if (TF_PREDICT_FALSE(v2 >= std::numeric_limits<int>::max())) {      \
+-       return ::tensorflow::internal::MakeCheckOpString(v1, v2, exprtext);\
++       return ::glib::internal::MakeCheckOpString(v1, v2, exprtext);\
+     }                                                                     \
+     const size_t uval = (size_t)((unsigned)v2);                           \
+     return name##Impl<size_t, size_t>(v1, uval, exprtext);                \
+@@ -224,12 +225,12 @@
+ // In optimized mode, use CheckOpString to hint to compiler that
+ // the while condition is unlikely.
+ #define CHECK_OP_LOG(name, op, val1, val2)                            \
+-  while (::tensorflow::internal::CheckOpString _result =              \
+-             ::tensorflow::internal::name##Impl(                      \
+-                 ::tensorflow::internal::GetReferenceableValue(val1), \
+-                 ::tensorflow::internal::GetReferenceableValue(val2), \
++  while (::glib::internal::CheckOpString _result =              \
++             ::glib::internal::name##Impl(                      \
++                 ::glib::internal::GetReferenceableValue(val1), \
++                 ::glib::internal::GetReferenceableValue(val2), \
+                  #val1 " " #op " " #val2))                            \
+-  ::tensorflow::internal::LogMessageFatal(__FILE__, __LINE__) << *(_result.str_)
++  ::glib::internal::LogMessageFatal(__FILE__, __LINE__) << *(_result.str_)
+ 
+ #define CHECK_OP(name, op, val1, val2) CHECK_OP_LOG(name, op, val1, val2)
+ 
+@@ -241,7 +242,7 @@
+ #define CHECK_GE(val1, val2) CHECK_OP(Check_GE, >=, val1, val2)
+ #define CHECK_GT(val1, val2) CHECK_OP(Check_GT, >, val1, val2)
+ #define CHECK_NOTNULL(val)                                 \
+-  ::tensorflow::internal::CheckNotNull(__FILE__, __LINE__, \
++  ::glib::internal::CheckNotNull(__FILE__, __LINE__, \
+                                        "'" #val "' Must be non NULL", (val))
+ 
+ #ifndef NDEBUG
+@@ -292,8 +293,9 @@
+   }
+   return std::forward<T>(t);
+ }
++#endif
+ 
+ }  // namespace internal
+-}  // namespace tensorflow
++}  // namespace glib
+ 
+ #endif  // TENSORFLOW_PLATFORM_DEFAULT_LOGGING_H_

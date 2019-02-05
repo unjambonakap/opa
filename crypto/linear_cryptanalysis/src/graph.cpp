@@ -654,6 +654,7 @@ void CipherGraph::do_get_pre_fail(const Basis &out, Basis &res) const {
 }
 
 void CipherGraph::setup_jit(const JitBuilder &builder) const {
+  /*
   std::map<const CipherNode *, JitBuilder> mp;
   JitContext jc;
   jc.c = builder.c;
@@ -735,13 +736,15 @@ void CipherGraph::setup_jit(const JitBuilder &builder) const {
     x->setup_jit(cur);
   }
   jc.c->mov(*builder.output_var, *mp[output].output_var);
+  */
 }
 
-std::unique_ptr<asmjit::X86GpVar>
+std::unique_ptr<asmjit::X86Gp>
 CipherGraph::get_var_for_remap(std::map<const CipherNode *, JitBuilder> &mp,
                                JitContext &jc, const JitBuilder &builder,
                                CipherNode *to, int to_pos, CipherNode *from,
                                int from_pos, int len, bool is_key) const {
+  /*
 
   int input_block;
   if (is_key) {
@@ -806,6 +809,8 @@ CipherGraph::get_var_for_remap(std::map<const CipherNode *, JitBuilder> &mp,
     jc.c->shr(*res, -shift);
   }
   return res;
+  */
+  return nullptr;
 }
 void CipherGraph::smart_plug(const std::vector<PlugDesc> &ins, PlugDesc out) {
   OPA_CHECK0(ins.size() > 0);

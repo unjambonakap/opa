@@ -7,6 +7,7 @@
 
 using namespace std;
 using namespace opa::math::common;
+DEFINE_bool(quadrisection_local, false, "");
 
 OPA_NAMESPACE(opa, crypto, stream)
 
@@ -19,14 +20,18 @@ u64 get_count_for_sizes(const std::vector<pii> &take,
   return score.fitsu64() ? score.getu64() : -1;
 }
 
-void OutputRel::add(u64 nkey, MitmRel &res) {
+bool OutputRel::add(u64 nkey, MitmRel &res) {
   // sort(ALL(res));
   // REP (u, res.size() - 1) {
   //  if (res[u] == res[u + 1]) {
   //    return;
   //  }
   //}
-  out->pb(MP(nkey, res));
+  if (nwant == -1 || out->size() < nwant) {
+    out->pb(MP(nkey, res));
+    return true;
+  }
+  return false;
 }
 
 class RelFinder {
@@ -45,8 +50,7 @@ public:
   }
 
   void rec(int pos, int last = -1) {
-    if (pos == 0 || ids[pos] != ids[pos - 1])
-      last = -1;
+    if (pos == 0 || ids[pos] != ids[pos - 1]) last = -1;
 
     if (pos == ids.size()) {
       out_rels.pb(MP(state_key[pos], state));
@@ -113,8 +117,7 @@ public:
   }
 
   u64 get_cut_score(const CutPlan &plan) {
-    if (plan.take_left.size() == 0)
-      return -1;
+    if (plan.take_left.size() == 0) return -1;
     return max(get_cut_score_one_side(plan.take_left),
                get_cut_score_one_side(plan.take_right));
   }
@@ -153,7 +156,7 @@ void StepHelper::solve(u64 lim, int type) {
 
 void mitm_proc(const MitmEntryList &tleft, const MitmEntryList &tright,
                OutputRel &out, u64 mask, bool is_sym) {
-  // OPA_DISP("mitm proc ", tleft.size(), tright.size());
+  OPA_DISP("mitm proc ", tleft.size(), tright.size());
   for (int il = 0, ir = 0; il < tleft.size() && ir < tright.size();) {
     for (; il < tleft.size() && (tleft[il].ST & mask) < (tright[ir].ST & mask);
          ++il) {
@@ -178,11 +181,10 @@ void mitm_proc(const MitmEntryList &tleft, const MitmEntryList &tright,
         FOR (j, ir, is_sym ? i : nr) {
           MitmRel res;
 
-          if (is_sym && tleft[i].ND == tright[j].ND)
-            continue;
+          if (is_sym && tleft[i].ND == tright[j].ND) continue;
           res.ST = tleft[i].ND.ST | tright[j].ND.ST;
           res.ND = tleft[i].ND.ND | tright[j].ND.ND;
-          out.add(tleft[i].ST ^ tright[j].ST, res);
+          if (!out.add(tleft[i].ST ^ tright[j].ST, res)) return;
         }
       }
     }
@@ -260,8 +262,7 @@ void mitmrels_to_midrels(const MitmEntryList &mitm_rels, MidRelDesc &mid_rels,
         break;
       }
     }
-    if (!ok)
-      continue;
+    if (!ok) continue;
 
     mid_rels.emplace_back(e.ST, rel);
   }
@@ -276,8 +277,8 @@ struct QuadrisectionTaskParams : public opa::utils::ProtobufParams {
 };
 
 struct QuadrisectionTask
-  : public opa::threading::AutoCollectJob<QuadrisectionTaskParams,
-                                          MidRelEntry> {
+    : public opa::threading::AutoCollectJob<QuadrisectionTaskParams,
+                                            MidRelEntry> {
   struct Params : public opa::utils::ProtobufParams {
     MitmEntryList a, b, c, d;
     std::vector<FinalRel> rels;
@@ -302,10 +303,8 @@ struct QuadrisectionTask
     u64 mask_t = ((1ull << m_params.data.t) - 1) << nshift;
 
     MitmEntryList b2, d2;
-    for (auto &e : m_params.b)
-      b2.pb(MP(e.ST ^ M, e.ND));
-    for (auto &e : m_params.d)
-      d2.pb(MP(e.ST ^ M, e.ND));
+    for (auto &e : m_params.b) b2.pb(MP(e.ST ^ M, e.ND));
+    for (auto &e : m_params.d) d2.pb(MP(e.ST ^ M, e.ND));
     sort(ALL(b2));
     sort(ALL(d2));
     MitmEntryList l1, l2;
@@ -351,16 +350,14 @@ struct QuadrisectionTask
         REP (i1, 4) {
           int x1 = get_mitm_rel_elem(mitm_list[i].ND, i1);
           // skip empty vec from check
-          if (x1 == 0)
-            continue;
+          if (x1 == 0) continue;
           REP (i2, i1) {
             if (x1 == get_mitm_rel_elem(mitm_list[i].ND, i2)) {
               ok = 0;
               break;
             }
           }
-          if (!ok)
-            break;
+          if (!ok) break;
         }
         if (!ok) {
           swap(mitm_list[i], mitm_list.back());
@@ -385,8 +382,7 @@ struct QuadrisectionTask
       } else {
         bool more;
         cb()(task, more);
-        if (!more)
-          break;
+        if (!more) break;
       }
     }
   }
@@ -407,7 +403,7 @@ void StepHelper::solve_quadrisection(const CutPlan &cut_plan, MidRelDesc &res) {
     helper.compute_cut(m_params.rels_store->get_sizes(), cut_plan.take_right);
   OPA_CHECK0(cut_plan.left.size() > 0 && cut_plan.right.size() > 0);
 
-  const u64 max_sz = 1e6;
+  const u64 max_sz = 1e5;
   const int t_pw = max(cut_plan.can_left, cut_plan.can_right) / max_sz;
   int t = log2_high_bit(max(1, t_pw - 1));
   if (m_params.dispatcher) {
@@ -435,10 +431,8 @@ void StepHelper::solve_quadrisection(const CutPlan &cut_plan, MidRelDesc &res) {
     ++pos;
   }
 
-  if (params.a.size() < params.b.size())
-    swap(params.a, params.b);
-  if (params.c.size() < params.d.size())
-    swap(params.c, params.d);
+  if (params.a.size() < params.b.size()) swap(params.a, params.b);
+  if (params.c.size() < params.d.size()) swap(params.c, params.d);
 
   params.rels = frel_to_mitmrel.rmp;
   params.data.nbits = m_params.zero_ub;
@@ -454,7 +448,7 @@ void StepHelper::solve_quadrisection(const CutPlan &cut_plan, MidRelDesc &res) {
     QuadrisectionTask::JobName));
   task->init(params);
 
-  if (m_params.dispatcher) {
+  if (!FLAGS_quadrisection_local && m_params.dispatcher) {
     m_params.dispatcher->process_job(*task);
   } else {
     task->run();
@@ -506,7 +500,9 @@ void StepHelper::solve_mitm(const CutPlan &cut_plan, const u64 lim,
   midrel_to_mitmrel(tright, l2, 1, frel_to_mitmrel);
 
   mitm_proc(l1, l2, rel_res, -1, cut_plan.is_sym());
+  OPA_DISP0("DOOONE");
   mitmrels_to_midrels(mitm_res, res, frel_to_mitmrel.rmp, 2);
+  OPA_DISP0("done conv1");
 }
 
 void StepHelper::get_lim_rels(const vector<int> &ids, MidRelDesc &out_rels,
@@ -527,10 +523,8 @@ void StepHelper::get_lim_rels(const vector<int> &ids, MidRelDesc &out_rels,
 
 void StepHelper::get_all_rels(const std::vector<int> &ids,
                               MidRelDesc &out_rels) {
-  OPA_DISP("get all rels ", ids, m_params.key_rels->size());
   RelFinder finder(*m_params.rels_store, ids, *m_params.key_rels, out_rels);
   finder.go();
-  OPA_DISP("GOT >> ", out_rels.size());
 }
 
 OPA_NAMESPACE_END(opa, crypto, stream)

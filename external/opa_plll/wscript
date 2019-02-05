@@ -1,0 +1,12 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder, ExtraConf
+
+x = WafBuilder(globals())
+
+x.register_libs(x.packages.GMP, x.packages.MPFR)
+#x.auto_lib(base_dir='./plll-1.0/plll')
+#x.get(x.typ.LIB).update(register_name=x.libs.PLLL_N,
+#                        features='cxx')
+#
+x.setup()

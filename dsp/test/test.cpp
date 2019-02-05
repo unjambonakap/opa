@@ -6,7 +6,7 @@ using namespace std;
 using namespace opa::dsp::gps;
 
 TEST(GPS, L1CA) {
-  auto x = Satellites::get();
+  auto x = Satellites::GetSingleton();
   REP (i, x->nsats()) {
     auto s = x->get(i);
     printf("%02d >> ", i);

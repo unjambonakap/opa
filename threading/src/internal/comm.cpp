@@ -44,14 +44,14 @@ std::shared_ptr<JobMsg> Comm::recv() {
 
 std::string Comm::recv_str() {
   zmq::message_t msg;
-  OPA_ASSERTNO0(m_sock->recv(&msg));
+  OPA_CHECKNO0(m_sock->recv(&msg));
   return std::string((const char *)msg.data(), msg.size());
 }
 
 void Comm::send_str(const std::string &str) {
   zmq::message_t msg(str.size());
   memcpy(msg.data(), str.c_str(), str.size());
-  OPA_ASSERTNO0(m_sock->send(msg));
+  OPA_CHECKNO0(m_sock->send(msg));
 }
 
 void Comm::close() { m_sock->close(); }

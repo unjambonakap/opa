@@ -22,6 +22,8 @@
 #include "opa/crypto/cracker_misc.h"
 #include "opa/crypto/lfsr.h"
 #include "opa/crypto/lfsr_small.h"
+#include "opa/crypto/aes.h"
+#include "opa/crypto/padding.h"
 
 using namespace opa::crypto;
 using namespace opa::utils;
@@ -48,6 +50,7 @@ using namespace opa::crypto::cracker;
 %shared_ptr(opa::crypto::cracker::MapperAndCheckerParams)
 %shared_ptr(opa::crypto::cracker::MapperAndChecker)
 %shared_ptr(opa::crypto::cracker::CrackerChecker)
+%shared_ptr(opa::crypto::cracker::Cracker)
 %shared_ptr(opa::crypto::cracker::Pattern)
 %shared_ptr(opa::utils::DoubleRes)
 %shared_ptr(opa::utils::MapperFunc<opa::stolen::StringRef, std::string>)
@@ -75,6 +78,8 @@ namespace std{
 %include "opa/threading/data.h"
 %include "opa/threading/job.h"
 %include "opa/threading/auto_job.h"
+%include "opa/threading/dispatcher.h"
+%include "opa/threading/runner.h"
 
 namespace opa{
 namespace threading{
@@ -101,6 +106,8 @@ namespace utils{
 %include "opa/crypto/cracker_job.h"
 %include "opa/crypto/cracker_misc.h"
 %include "opa/crypto/lfsr.h"
+%include "opa/crypto/aes.h"
+%include "opa/crypto/padding.h"
 
 namespace opa{
 namespace crypto{

@@ -11,9 +11,11 @@
 
 OPA_NAMESPACE(opa, crypto, stream)
 
-class SolverPlan : public opa::utils::Initable {
+
+class SolverPlan : public opa::utils::BaseStorable {
 public:
-  void init(int input_len, const std::set<int> &known_data);
+  OPACS_GETTER_BY_CL(SolverPlan);
+  void init(int input_len);
 
   void set_final_rels(int pos, const std::vector<SolverRel> &rels);
 
@@ -33,15 +35,17 @@ public:
                  const opa::math::common::BitVec &key,
                  std::vector<int> &out_data, u64 &out_tot) const;
 
-  OPA_ACCESSOR_R(std::vector<la::Relation>, m_relations, filtered_relations);
   int nsteps() const { return m_steps.size(); }
   OPA_ACCESSOR_R(std::vector<StepDescription>, m_steps, steps);
 
   int m_input_len;
-  std::vector<la::Relation> m_relations;
   std::vector<StepDescription> m_steps;
   RelsStore m_rels_store;
-  std::set<int> m_known_data;
+  int lim_nfix = 31;
+  int n_bruteforce = 4;
+
+
+  OPA_TGEN_IMPL(m_input_len, m_steps, m_rels_store);
 };
 
 OPA_NAMESPACE_END(opa, crypto, stream)

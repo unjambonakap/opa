@@ -1,0 +1,122 @@
+In case you want to tear the library into parts or start understanding/modifying it, here are some
+remarks.
+
+The distribution is split up into four parts:
+ - plll: the lattice reduction library
+    * see below!
+ - doc: uses doxygen+LaTeX to create documentation for the library
+    * see INSTALL on how to create the documentation
+ - tests: some test programs
+ - tools: some tools, mainly
+    * plll: a command-line program allowing to reduce lattices
+            Ex:  tools/plll -h
+            Ex:  tools/plll lattice.txt -ints=bi -lll -alpha=0.99 -di=both -dibs=20
+            Ex:  tools/plll lattice.txt -ints=bi -bkz -window=20 -alpha=0.99
+            Ex:  tools/plll lattice.txt -ints=bi -hkz -write=outlattice.txt
+    * pruningoptimize: tool to compute "optimal" extreme pruning curves
+                       (highly experimental, don't use)
+ - examples: some source code examples, as used in the documentation
+
+
+============ PLLL DIRECTORY ========================================================================
+
+The plll library consists of:
+ - arithmetic library
+ - linear algebra library
+ - little utility things
+ - lattice reduction library
+
+The ARITHMETIC LIBRARY consists of the following header:
+    include/plll/arithmetic.hpp
+    include/plll/arithmetic-expressions.hpp
+    include/plll/arithmetic-gmp*.hpp
+    include/plll/rational*.hpp
+    
+    include-internal/ddqd-wrapper*.hpp
+    include-internal/nfp-wrapper*.hpp
+    include-internal/nint-wrapper*.hpp
+    include-internal/ensurehugeexponent.hpp
+    
+    src/arithmetic/arithmetic.cpp
+    src/arithmetic/arithmetic-gmp.cpp
+    src/arithmetic/ddqd-wrapper.cpp
+    src/arithmetic/rational.cpp
+
+The LINEAR ALGEBRA library consists of the following files:
+
+    include/plll/matrix.hpp
+    include/plll/matrix-*.hpp
+    include/plll/linalg.hpp
+    
+    src/linalg/linalg.cpp
+
+Note that the vector/matrix part is essentially completely in the marix*.hpp header files. Only
+arithmetic.hpp is needed to provide the arithmetic::unary_operation<> and
+arithmetic::binary_operation<> templates.
+
+The files linalg.hpp/linalg.cpp contain code for doing linear algebra using arithmetic::Integer
+objects (and require the arithmetic library). Note that the functions implemented are by far not
+optimal. I hacked them together when I needed them, to be replaced by better and faster versions
+somewhen later.
+
+The utility stuff consists of the following:
+
+    include/plll/helper.hpp
+      * Mostly template metaprogramming helpers.
+    
+    include/plll/arguments.hpp
+    src/utilities/arguments.cpp
+      * Simple command line argument parser.
+    
+    include-internal/factor.hpp
+    src/arithmetic/factor.cpp
+      * A simple integer factoring tool; only use for small numbers.
+    
+    include-internal/primes.hpp
+    src/arithmetic/primes.cpp
+      * Finding and testing for primes.
+    
+    include-internal/keccak.hpp
+    src/utilities/keccak.cpp
+      * A simple Keccak (SHA-3) implementation. Used to seed the RNG in arithmetic-gmp.cpp in case
+        boost has no sequence generator.
+    
+    include-internal/timer.hpp
+    src/utilities/timer.cpp
+    include-internal/profiling.hpp
+      * High-resolution and CPU time measurement, and profiling helpers.
+    
+    include-internal/taskmanager.hpp
+    src/utilities/taskmanager.cpp
+      * A thread managing task manager. Used for parallel enumeration.
+    
+    include-internal/buffer.hpp
+      * A little "buffer" class. Needed for some IO code.
+    
+    include-internal/myalloc.hpp
+    src/utilities/myalloc.cpp
+    src/utilities/dlalloc.c
+    src/utilities/dlalloc.cpp
+    src/utilities/dlalloc.h
+      * The thread-local memory allocator (and friends). Uses Doug Lea's dlalloc as the backend.
+
+The main LATTICE REDUCTION LIBRARY consists of:
+
+    include/plll.hpp
+    include/plll/documentation.hpp  [doxygen pages documentation]
+    
+    src/lattices/lll2.cpp
+    src/lattices/lll2-multiplexer.cpp
+    src/lattices/transform-impl.cpp
+    src/lattices/*                                             [files to be included; mostly template code]
+    src/lattices/compilewrappers/lll2-compunit-bigint-*.cpp    [compilation units including template code]
+    src/lattices/compilewrappers/lll2-compunit-longint-*.cpp   [compilation units including template code]
+    src/lattices/compilewrappers/*                             [files to be included; mostly template code]
+
+Here should be a more detailed discussion on what is where, but it will take some time to write
+that...
+
+============ GENERAL ===============================================================================
+
+In general, all places where stuff is not good at the moment are marked with "??? !!! ..." or some
+permutation of these. Also see the TODO file, which contains a summary of these places.

@@ -17,15 +17,15 @@ uintptr_t FunctionCaller::call() {
   return ret;
 }
 
-asmjit::VarType JitUtil::sizeToType(int size) const {
+asmjit::TypeId::Id JitUtil::sizeToType(int size) const {
   if (size <= 8)
-    return kVarTypeUInt8;
+    return TypeId::Id::kU8;
   if (size <= 16)
-    return kVarTypeUInt16;
+    return TypeId::Id::kU16;
   if (size <= 32)
-    return kVarTypeUInt32;
+    return TypeId::Id::kU32;
   if (size <= 64)
-    return kVarTypeUInt64;
+    return TypeId::Id::kU64;
   OPA_CHECK0(0);
 }
 OPA_NAMESPACE_END(opa, crypto, la)

@@ -41,7 +41,6 @@ public:
   void test_rel(const la::Relation &rel);
 
   // dont like the no const here, but I would need mutable stuff for rels_store
-  void load_plan(SolverPlan *plan);
   void load_plan_from_data(const std::set<int> &known_data);
 
   std::vector<la::Relation> get_used_relations() const;
@@ -49,8 +48,8 @@ public:
   opa::math::common::BitVec solve(const ObservedData &obs_data);
 
   Params m_params;
-  SolverPlan *m_plan;
-  UPTR(SolverPlan) m_own_plan;
+  SPTR(SolverPlan) m_plan;
+  SPTR(SolverPlan) m_own_plan;
 
   void configure_output_bits(const std::set<int> &data);
 

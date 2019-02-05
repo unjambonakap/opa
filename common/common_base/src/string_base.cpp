@@ -72,9 +72,6 @@ string b64d(const string &a) {
   return res;
 }
 
-static s8 char2hex(s8 x) { return x <= '9' ? x - '0' : x - 'a' + 10; }
-
-static s8 hex2char(s8 x) { return x <= 9 ? '0' + x : 'a' + x - 10; }
 
 string h2b(const string &a) {
   int n = a.length();
@@ -82,7 +79,7 @@ string h2b(const string &a) {
   string res(n / 2, 0);
 
   REP (i, n / 2)
-    res[i] = char2hex(a[2 * i]) << 4 | char2hex(a[2 * i + 1]);
+    res[i] = char2hex(a[2 * i] | 32) << 4 | char2hex(a[2 * i + 1] | 32);
   return res;
 }
 

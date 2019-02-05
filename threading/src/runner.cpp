@@ -1,11 +1,11 @@
 #include "runner.h"
-#include "worker.h"
-#include "job.h"
 #include "client_dispatcher.h"
 #include "dispatcher.h"
-#include <opa/utils/string.h>
-#include <opa/utils/misc.h>
+#include "job.h"
+#include "worker.h"
 #include <gflags/gflags.h>
+#include <opa/utils/misc.h>
+#include <opa/utils/string.h>
 
 using namespace std;
 using namespace opa::utils;
@@ -44,18 +44,15 @@ void Runner::EasySetup() {
 }
 
 Dispatcher *Runner::EasyDispatcher() {
-  if (!g_runner)
-    return nullptr;
+  if (!g_runner) return nullptr;
   return g_runner->dispatcher();
 }
 
 void Runner::stop() {
   printf("stopping dispatcher\n");
   m_client_dispatcher.stop();
-  for (auto &x : m_workers)
-    x->stop();
-  for (auto &x : m_workers)
-    x->join();
+  for (auto &x : m_workers) x->stop();
+  for (auto &x : m_workers) x->join();
   m_client_dispatcher.join();
 }
 
@@ -65,16 +62,17 @@ void Runner::run_cmd() {
 
   if (FLAGS_cloudy_action == "server")
     run_server_cmd();
-  else if (FLAGS_cloudy_action == "client")
+  else if (FLAGS_cloudy_action == "client") {
     run_client_cmd();
-  else if (FLAGS_cloudy_action == "both")
+    m_client_dispatcher.join();
+  } else if (FLAGS_cloudy_action == "both")
     run_both();
   else
     OPA_ASSERT(0, "");
 }
 
 void Runner::run_client_cmd() {
-  std::string server_info = FLAGS_cloudy_server;
+  std::string server_info = get_server_info(FLAGS_cloudy_server);
   run_client(get_nthread(), server_info);
 }
 int Runner::get_nthread() const { return FLAGS_cloudy_nthread; }
@@ -90,12 +88,13 @@ void Runner::run_client(int nthread, const std::string &server_info) {
   m_client_dispatcher.start();
 }
 std::string Runner::get_server_info(const std::string &hostname) const {
+  OPA_DISP0(hostname);
   std::string server_info =
     utils::stdsprintf("tcp://%s:5555", hostname.c_str());
   return server_info;
 }
 
-void Runner::run_server_cmd() { run_server(get_server_info(get_hostname())); }
+void Runner::run_server_cmd() { run_server(get_server_info("0.0.0.0")); }
 
 void Runner::run_server(const std::string &server_info) {
   OPA_DISP0(server_info);
@@ -104,7 +103,7 @@ void Runner::run_server(const std::string &server_info) {
 }
 
 void Runner::run_both() {
-  std::string server_info = get_server_info("127.0.0.1");
+  std::string server_info = get_server_info("0.0.0.0");
   run_client(get_nthread(), server_info);
   run_server(server_info);
 }

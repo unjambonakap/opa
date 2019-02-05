@@ -1,0 +1,12 @@
+IMAGES=lattice lattice-basis1 lattice-basis2 lattice-basis3
+
+all: $(IMAGES:=.png) $(IMAGES:=.eps)
+
+%.pdf: @CMAKE_CURRENT_SOURCE_DIR@/images/%.tex
+	texi2pdf $<
+
+%.eps: %.pdf
+	pdf2ps $< $@
+
+%.png: %.pdf
+	convert -density 100 $< $@

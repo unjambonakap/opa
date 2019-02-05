@@ -7,6 +7,9 @@
 %include "std_map.i"
 %include "std_shared_ptr.i"
 
+%{
+#define SWIG_FILE_WITH_INIT
+%}
 
 %{
 #include <stdint.h>
@@ -16,6 +19,13 @@
 #include <opa_common.h>
 #include <glib/core/stringpiece.h>
 %}
+
+%include "numpy.i"
+%init %{
+import_array();
+%}
+%apply (float* IN_ARRAY1, int DIM1) {(const float* data, int n)};
+%apply (double* IN_ARRAY1, int DIM1) {(const double* data, int n)};
 
 %feature("director") opa::OpaCallback;
 
@@ -60,12 +70,23 @@ namespace std {
   if (!data.ok) SWIG_fail;
 }
 %typemap(in) const opa::stolen::StringRef& (swig_tsf_data data){
+  $1=data.get_ref_ptr($input);
+  if (!data.ok) SWIG_fail;
+}
+%typemap(in) opa::stolen::StringRef (swig_tsf_data data){
   $1=data.get_ref($input);
   if (!data.ok) SWIG_fail;
 }
+%typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) glib::StringPiece {$1 = 1; }
+%typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) opa::stolen::StringRef{$1 = 1; }
+
+
 
 %typemap(out) std::string {
-  $result=SwigHelper::FromString($1);
+  $result=swig_helper::convert($1);
+}
+%typemap(out) std::pair<std::string, bool> {
+  $result=swig_helper::convert($1);
 }
 
 %typemap(in) const std::string& (swig_tsf_data data){
@@ -112,29 +133,15 @@ namespace std {
   %append_output(PyLong_FromUnsignedLongLong(*$1));
 }
 
-%typemap(in, numinputs=1) (glib::StringPiece, std::string &out) (swig_tsf_data data) { 
-  $1=data.get_piece($input);
-  if (!data.ok) SWIG_fail;
-  $2=new std::string;
+%typemap(in, numinputs=0) (std::string &out) (swig_tsf_data data) { 
+  $1 = new std::string;
+}
+%typemap(argout) (std::string &out) {
+  %append_output(PyBytes_FromStringAndSize((const char*)$1->data(), $1->size())); 
 }
 
-%typemap(in, numinputs=1) (const opa::stolen::StringRef &in, std::string &out) (swig_tsf_data data) { 
-  $1=data.get_ref($input);
-  if (!data.ok) SWIG_fail;
-  $2=new std::string;
-}
-
-%typemap(argout) (glib::StringPiece, std::string &out) {
-  %append_output(PyBytes_FromStringAndSize((const char*)$2->data(), $2->size())); 
-}
-%typemap(freearg) (glib::StringPiece, std::string &out) {
-  delete $2;
-}
-%typemap(argout) (const opa::stolen::StringRef &in, std::string &out) {
-  %append_output(PyBytes_FromStringAndSize((const char*)$2->data(), $2->size())); 
-}
-%typemap(freearg) (const opa::stolen::StringRef &in, std::string &out) {
-  delete $2;
+%typemap(freearg) (std::string &out) {
+  delete $1;
 }
 
 %apply const std::string& {std::string* };

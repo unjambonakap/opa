@@ -1,0 +1,12 @@
+All code except the memory allocator was written by
+    Felix Fontein
+    felix@fontein.de
+
+
+The memory allocator in the files
+    plll/src/utilities/dlalloc.c
+    plll/src/utilities/dlalloc.h
+is Doug Lea's dlmalloc, which was released to the public domain.
+For more information, check out src/utilities/dlalloc.c or 
+ftp://gee.cs.oswego.edu/pub/misc/malloc.c
+

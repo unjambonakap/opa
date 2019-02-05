@@ -1,0 +1,22 @@
+plll/include/plll/matrix-ops2.hpp:
+    Add support for some "compatibility move" support for C++98. Maybe also something like 
+    destructive_move (http://isocpp.org/files/papers/n4034.pdf).
+
+plll/include/plll/arithmetic.hpp:
+    Add support for unicode strings (wchar_t-based in C++98, and new character types in
+    C++11, as well as new strings in C++11).
+
+plll/src/arithmetic/ddqd-wrapper.cpp:
+    Add proper conversions between dd_real and qq_real on the one side, and long int, 
+    long long, mpfr_t and mpz_t on the other hand.
+
+plll/src/arithmetic/primes.cpp:
+    Implement a more efficient prime sieve, such as 
+    http://en.wikipedia.org/wiki/Sieve_of_Atkin
+
+
+General:
+  - add more comments!
+  - extend documentation, in particular the example section
+  - add more support for C++11/14
+  - improve support for less mainstream algorithms by test them thoroughly

@@ -1,0 +1,2 @@
+- {file: hack/ctf/rtfm/werb/main.py, binary: true}
+- {tgt_file: ./build/installs.tgt }

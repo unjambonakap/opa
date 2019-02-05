@@ -45,7 +45,7 @@ public:
   Poly(const RingType *ring, u32 a) {
     init(ring);
     OPA_ASSERT0(a == 0 || a == 1);
-    if (a == 1) poly.pb(ring->getE());
+    if (a == 1) poly.pb(get_underlying_ring()->getE());
   }
 
   Poly<T> &operator=(const Poly<T> &a) {

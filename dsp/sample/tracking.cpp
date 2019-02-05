@@ -16,7 +16,8 @@ using namespace opa::utils;
 using namespace opa::dsp::gps;
 using namespace opa::math::common;
 typedef Complex<s8> T;
-typedef complex<double> Type;
+typedef double BType;
+typedef complex<BType> Type;
 double samp_f = 8738133.333;
 
 double angle_diff(double diff) {
@@ -396,7 +397,7 @@ vector<T> simulated_carrier(double w0, int n = -1) {
 
 void test_filter(Filter<Type> *f) {
   FFT2<Type> fft;
-  RealField<Type> r;
+  ComplexField<BType> r;
   int npw = 12;
   int n = 1 << npw;
   fft.init(&r, npw,

@@ -1,0 +1,16 @@
+Welcome to the plll lattice reduction library!
+
+This is the first public release of the library. While algorithms such as LLL, BKZ,
+Kannan-Schnorr-Euchner enumeration and Deep Insertions are heavily tested, other algorithms and
+settings might not be correct or have other kind of problems.
+
+If you encounter problems, please provide feedback to felix@fontein.de. You can always find the
+newest version under https://felix.fontein.de/plll/. If you are interested in working on this
+library, please also contact me under felix@fontein.de.
+
+Read:
+  - INSTALL if you want to know how to compile and compile and install the library and documentation
+  - HACKING if you want to know how to dwell through the source code of the library
+  - TODO if you want to know which parts of the library need more work
+  - CONTRIBUTING in case you want to contribute to the library
+  - LICENSE if you are interested in the license

@@ -7,5 +7,6 @@ x = WafBuilder(globals())
 x.register_libs(x.libs.Common_N, x.libs.MathCommon_N, x.libs.Crypto_N)
 x.auto()
 x.get(x.typ.LIB).update(register_name=x.libs.DSP_N, features='cxxshlib'),
+x.get(x.typ.SWIG).update(install=True, libs=x.libs.SwigMathCommon_N)
 
 x.setup()

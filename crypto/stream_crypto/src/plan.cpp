@@ -5,10 +5,10 @@
 using namespace std;
 using namespace opa::math::common;
 
+DEFINE_double(target_success_prob, 0.95, "");
 OPA_NAMESPACE(opa, crypto, stream)
 
-double bias_to_prob(double bias) { return (1 + bias) / 2; }
-double prob_to_bias(double prob) { return 2 * prob - 1; }
+OPA_CLASS_STORE_REGISTER_BY_CL(SolverPlan);
 
 // N: number of rels
 // M: number total of keys.
@@ -61,9 +61,7 @@ u64 get_num_event_for_success_prob(u64 ub, double prob, int nfix, int rem,
   return best;
 }
 
-void SolverPlan::init(int input_len, const std::set<int> &known_data) {
-  opa::utils::Initable::init();
-  m_known_data = known_data;
+void SolverPlan::init(int input_len) {
   m_input_len = input_len;
   m_rels_store.init(input_len);
 }
@@ -88,7 +86,7 @@ void SolverPlan::find_rels(StepDescription &step,
     u64 lim = 0;
     if (i == to_use.size() - 1)
       lim = last_count;
-    if (1) {
+    if (0) {
       if (i != to_use.size() - 1)
         continue;
       lim = -1;
@@ -104,7 +102,7 @@ void SolverPlan::setup_step(StepDescription &step, int rem, int nfix) {
 
   u64 count = 0;
   double tot_prob = 1;
-  const double k_prob_threshold = 0.95;
+  const double k_prob_threshold = FLAGS_target_success_prob;
   vector<SolverState> to_use;
 
   bool first = 1;
@@ -174,9 +172,12 @@ void SolverPlan::build_plan() {
      We need to find rels where [0, rem[ are zeroed.
      */
 
-  int rem = m_input_len;
+  m_steps.emplace_back();
+  m_steps.back().n_bruteforce = n_bruteforce;
+
+  int rem = m_input_len - n_bruteforce;
   while (rem > 0) {
-    int lim_nfix = 31;
+    int lim_nfix = this->lim_nfix;
     int nfix = min(lim_nfix, rem);
     OPA_DISP("ON STEP >> ", rem);
     rem -= nfix;
@@ -208,7 +209,6 @@ void SolverPlan::eval_rels(const StepDescription &step,
   // first 31 bits are the keys. 32th is the constant
   vector<u32> evaled_rels(m_rels_store.get_num_rels());
   out_tot = 0;
-  OPA_DISP("EVALING", key.str());
 
   REP (i, evaled_rels.size()) {
     const auto &rel = m_rels_store.rels[i];

@@ -7,7 +7,7 @@ OPA_NAMESPACE(opa, crypto, stream)
 
 typedef u64 KeyRel;
 typedef std::vector<KeyRel> KeyRelsList;
-typedef std::vector<u16> FinalRel;
+typedef std::vector<u32> FinalRel;
 typedef std::pair<u64, u64> MitmRel;
 typedef std::pair<u64, MitmRel> MitmEntry;
 typedef std::vector<MitmEntry> MitmEntryList;
@@ -17,6 +17,9 @@ typedef std::vector<MidRelEntry> MidRelDesc;
 u64 get_count_for_sizes(const std::vector<pii> &take,
                         const std::vector<int> &sizes);
 
+inline double bias_to_prob(double bias) { return (1 + bias) / 2; }
+inline double prob_to_bias(double prob) { return 2 * prob - 1; }
+
 inline static u64 get_key(const opa::math::common::BitVec &bv, int rem) {
   u64 res = 0;
   // OPA_CHECK0(rem <= 32);
@@ -25,16 +28,34 @@ inline static u64 get_key(const opa::math::common::BitVec &bv, int rem) {
   return res;
 }
 
+struct SolverRel;
+struct SolverRelParams : public opa::utils::ProtobufParams {
+  opa::math::common::BitVecRepr v;
+  bool c;
+  SolverRelParams() {}
+  SolverRelParams(const SolverRel &rel);
+  OPA_TGEN_IMPL(v, c);
+};
+
 struct SolverRel {
   opa::math::common::BitVec v;
   bool c;
   SolverRel() {}
+  SolverRel(const SolverRelParams &params) {
+    v = params.v.to_bitvec();
+    c = params.c;
+  }
+
   SolverRel(int len) { init(len); }
   SolverRel(const opa::math::common::BitVec &v, bool c) : v(v), c(c) {}
 
   void init(int len) {
     v.init(len);
     c = 0;
+  }
+
+  bool check(const opa::math::common::BitVec &key) const {
+    return key.dot(v) == c;
   }
 
   SolverRel &sadd(const SolverRel &other) {
@@ -51,6 +72,11 @@ struct SolverRel {
   }
 };
 
+inline SolverRelParams::SolverRelParams(const SolverRel &rel) {
+  c = rel.c;
+  v = rel.v.to_repr();
+}
+
 struct SolverState {
   std::vector<pii> tb;
   double cost;
@@ -62,25 +88,19 @@ struct SolverState {
   bool operator<(const SolverState &s) const { return cost < s.cost; }
 };
 
-struct StepDescription {
+struct StepDescription : public opa::utils::ProtobufParams {
+  int n_bruteforce = -1;
   std::vector<int> fixed_input;
   std::vector<FinalRel> rels;
   u32 get_fixed_key_from_bitvec(const opa::math::common::BitVec &key) const;
 
   void update_bitvec_from_fixed_key(u32 fixed_key,
                                     opa::math::common::BitVec &out_key) const;
+  OPA_TGEN_IMPL(n_bruteforce, fixed_input, rels);
 };
 
-class RelsStore {
+class RelsStore : public opa::utils::ProtobufParams {
 public:
-  std::vector<SolverRel> rels;
-  std::vector<SolverRel> full_rels;
-
-  std::vector<int> rels_type_pos;
-  std::vector<int> rels_type_length;
-  std::vector<double> type_bias;
-  int input_len = -1;
-
   void init(int input_len) { this->input_len = input_len; }
 
   inline const SolverRel &get_rel_by_type(int typ, int pos) const {
@@ -115,6 +135,14 @@ public:
     rels_type_length.pb(0);
   }
 
+  int get_rel_type(int relid) const {
+    REP (typ, rels_type_length.size()) {
+      relid -= rels_type_length[typ];
+      if (relid < 0) return typ;
+    }
+    OPA_CHECK0(false);
+  }
+
   void add_new_rel(const SolverRel &rel) {
     SolverRel rel_only_input;
     rel_only_input.init(input_len);
@@ -123,7 +151,7 @@ public:
     rel_only_input.c = rel.c;
 
     rels.pb(rel_only_input);
-    OPA_CHECK(rels.size() <= 1 << 16, "Too many rels, id has to fit on u16");
+    OPA_CHECK(rels.size() <= 1ull << 32, "Too many rels, id has to fit on u32");
     full_rels.pb(rel);
     rels_type_length.back() += 1;
   }
@@ -138,12 +166,53 @@ public:
     }
   }
 
+  double get_score(const opa::math::common::BitVec &bv) const {
+    double score = 0;
+    for (auto &x : rels) {
+      score += x.check(bv);
+    }
+    return score;
+  }
+
   std::vector<int> get_sizes() const {
     std::vector<int> res;
     REP (i, get_num_types())
       res.pb(get_num_rels_by_type(i));
     return res;
   }
+
+  std::vector<SolverRel> rels;
+  std::vector<SolverRel> full_rels;
+
+  std::vector<int> rels_type_pos;
+  std::vector<int> rels_type_length;
+  std::vector<double> type_bias;
+  int input_len = -1;
+
+  mutable std::vector<SolverRelParams> rels_params;
+  mutable std::vector<SolverRelParams> full_rels_params;
+  virtual void after_load() {
+    for (auto &rel : rels_params) {
+      rels.emplace_back(rel);
+    }
+    for (auto &rel : full_rels_params) {
+      full_rels.emplace_back(rel);
+    }
+    rels_params.clear();
+    full_rels_params.clear();
+  }
+
+  virtual void before_store() const {
+    for (auto &rel : rels) {
+      rels_params.emplace_back(rel);
+    }
+    for (auto &rel : full_rels) {
+      full_rels_params.emplace_back(rel);
+    }
+  }
+
+  OPA_TGEN_IMPL(input_len, rels_params, full_rels_params, rels_type_pos,
+                type_bias, rels_type_length);
 };
 
 struct CutPlan {
@@ -157,8 +226,7 @@ struct CutPlan {
 
   void to_ids(const std::vector<pii> &tb, std::vector<int> &res) {
     res.clear();
-    for (auto &e : tb)
-      REP (j, e.ND)
+    for (auto &e : tb) REP (j, e.ND)
         res.pb(e.ST);
   }
 
@@ -179,7 +247,7 @@ struct OutputRel {
   MitmEntryList *out;
   u64 nwant;
 
-  void add(u64 nkey, MitmRel &res);
+  bool add(u64 nkey, MitmRel &res);
 };
 
 class StepHelper {

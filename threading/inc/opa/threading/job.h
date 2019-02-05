@@ -1,7 +1,7 @@
 #pragma once
 
-#include <opa_common.h>
 #include <opa/threading/data.h>
+#include <opa_common.h>
 
 OPA_NAMESPACE_DECL2(opa, threading)
 
@@ -9,6 +9,9 @@ typedef std::function<DataId(JobMsgPtr work, bool &out_more)> ServerGetWorkFunc;
 
 class Job {
 public:
+  Job(){
+
+  }
   virtual ~Job() {}
   virtual void reset() {}
 
@@ -35,6 +38,8 @@ public:
 #define OPA_CLOUDY_JOB_DECL                                                    \
   static opa::threading::JobId StaticJobId;                                    \
   static std::string JobName;
+
+
 #define OPA_CLOUDY_JOB_IMPL(cl)                                                \
   opa::threading::JobId cl::StaticJobId;                                       \
   std::string cl::JobName;
@@ -43,7 +48,7 @@ public:
   template <> std::string cl<__VA_ARGS__>::JobName;
 
 private:
-  JobId m_job_id;
+  JobId m_job_id = Invalid_JobId;
 };
 OPA_DECL_SPTR(Job, JobPtr);
 
@@ -108,8 +113,7 @@ public:
 
   virtual void tserver_set_work_result(const JobMsg &base_msg, const TRes &res,
                                        DataId data_id) {
-    if (m_res_list.size() <= data_id)
-      m_res_list.resize(data_id + 1);
+    if (m_res_list.size() <= data_id) m_res_list.resize(data_id + 1);
     m_res_list[data_id] = res;
   }
 
@@ -124,8 +128,7 @@ public:
 
   virtual void tserver_set_work_result(const JobMsgPtr &base_msg,
                                        const TRes &res, DataId data_id) {
-    if (tserver_handle_res(base_msg, res))
-      m_found = true;
+    if (tserver_handle_res(base_msg, res)) m_found = true;
   }
 
   virtual bool server_want_more_results() const { return !m_found; }

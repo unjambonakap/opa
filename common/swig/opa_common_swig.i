@@ -12,6 +12,7 @@ using namespace opa::init;
 #include "opa/utils/DataStruct.h"
 %}
 
+
 %shared_ptr(opa::utils::Base);
 %shared_ptr(opa::utils::Initable);
 

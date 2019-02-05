@@ -1,0 +1,77 @@
+=============== PREREQUISITES ======================================================================
+To build the library, the following libraries are needed:
+ - GMP (http://gmplib.org/)
+ - MPFR (http://www.mpfr.org/)
+ - boost (http://www.boost.org/), at least the following components:
+    * thread
+    * system
+    * function (header only)
+
+The following libraries are optinal:
+ - QD double-double/quad-double library (http://crd-legacy.lbl.gov/~dhbailey/mpdist/)
+
+The build system used is CMake (http://www.cmake.org/).
+
+=============== LIBRARY ============================================================================
+The basic way:
+
+    mkdir build
+    cd build
+    cmake .. [options]
+    make -j 4  # or how many cores you have to spare
+
+(If you are working on a system which does not have "make" as a native build environment, such as
+Apple's XCode, Microsoft's Visual C++ etc., you have to tell cmake to output projects/build
+files/... for your environment and process them depending on your environment.)
+
+The options to cmake can be combined of:
+
+  - Build type:
+     (nothing)                      Standard build mode
+     "-DCMAKE_BUILD_TYPE=Release"   Build mode without assertions, more efficient
+     "-DCMAKE_BUILD_TYPE=Debug"     Build mode with debug info -- very large!
+     
+  - "-DFASTCOMPILE": disables all arithmetics but GMP integers, CPU long int integers, and CPU long
+                     double floating point numbers. Compiles much faster this way.
+
+  - "-DCPP11=True": enables C++11 mode. Compiler should be a newer one (like GCC 4.8.x or Clang 3.2)
+
+A compiler can be specified by setting the environment variables CC and CXX before running
+cmake. For example, if you want to use clang/clang++, you have to set the environment variables as
+follows:
+
+    export CC=`which clang`
+    export CXX=`which clang++`
+
+(Here we assume your shell is bash.)
+
+Note that you can also use the scripts
+
+    makeclang11.sh                           uses Clang in C++11 mode
+    makeclang98.sh                           uses Clang in C++98 mode
+    makegcc11.sh                             uses GCC in C++11 mode (needs g++-4.8)
+    makegcc98.sh                             uses GCC in C++98 mode
+    makeall.sh                               calls all of the above scripts
+
+to build all combinations of the above parameters. They will be put into directories:
+
+    ARCHITECTURE-HOST-COMPILER-CPPMODE                       (nothing)
+    ARCHITECTURE-HOST-COMPILER-Debug-FastCompile-CPPMODE     -DCMAKE_BUILD_TYPE=Debug -DFASTCOMPILE
+    ARCHITECTURE-HOST-COMPILER-FastCompile-CPPMODE           -DFASTCOMPILE
+    ARCHITECTURE-HOST-COMPILER-Retail-CPPMODE                -DCMAKE_BUILD_TYPE=Release
+    ARCHITECTURE-HOST-COMPILER-Retail-FastCompile-CPPMODE    -DCMAKE_BUILD_TYPE=Release -DFASTCOMPILE
+
+To specify parameters to these scripts which should be forwarded to "make", use quotes, such as
+
+    ./makeclang11.sh "-j 4"
+
+
+=============== DOCUMENTATION ======================================================================
+
+To create the documentation, go into the build directory and type
+
+    make doc
+
+This uses doxygen to create HTML documentation in doc/html, and prepare LaTeX documentation in
+doc/latex; to convert the latter into a PDF, go into doc/latex and run "make". The generated file is
+doc/latex/refman.pdf. Note that an installed LaTeX is required for both HTML and PDF documentation.

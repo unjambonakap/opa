@@ -1,9 +1,9 @@
 #pragma once
 
+#include <opa/math/common/float.h>
 #include <opa/math/common/Field.h>
 #include <opa/math/common/FractionField.h>
 #include <opa/math/common/bignum.h>
-#include <opa/math/common/float.h>
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 

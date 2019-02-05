@@ -46,4 +46,59 @@ private:
   int m_pos=0;
 };
 
+class ReaderC8 {
+public:
+  ReaderC8() {}
+  ~ReaderC8();
+  ReaderC8(StringRef filename);
+  void init(StringRef filename);
+
+  std::complex<s8> read1();
+
+  template <typename T> T read() {
+    T res;
+    OPA_CHECK0(read(res));
+    return res;
+  }
+  template <typename T> std::vector<T> readn(int count) {
+    std::vector<T> res(count);
+    size_t got =fread(res.data(), sizeof(T), count, m_f);
+    OPA_CHECK(got == count, got, count);
+    return res;
+  }
+
+  template <typename T> bool read(T &res) {
+    return fread(&res, sizeof(res), 1, m_f) == sizeof(T);
+  }
+  size_t size() const;
+
+  bool read1(std::complex<s8> &e);
+  bool is_eof() const;
+
+private:
+  FILE *m_f = nullptr;
+};
+
+class Writer {
+public:
+  Writer() {}
+  ~Writer();
+  Writer(StringRef filename);
+  Writer(Writer &&writer){
+    m_f = writer.m_f;
+    writer.m_f = nullptr;
+  }
+
+  Writer(const Writer &writer) = delete;
+  Writer& operator=(const Writer & writer) = delete;
+  void init(StringRef filename);
+
+  template <typename T> bool write(const T &e) {
+    return fwrite(&e, 1, sizeof(e), m_f) == sizeof(e);
+  }
+
+private:
+  FILE *m_f = nullptr;
+};
+
 OPA_NAMESPACE_END(opa, utils)

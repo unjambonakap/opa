@@ -3,7 +3,7 @@
 #include <opa/crypto/la/base.h>
 
 namespace asmjit {
-class X86GpVar;
+class X86Gp;
 }
 
 OPA_NAMESPACE(opa, crypto, la)
@@ -242,7 +242,7 @@ public:
 
   virtual void setup_jit(const JitBuilder &builder) const override;
 
-  std::unique_ptr<asmjit::X86GpVar>
+  std::unique_ptr<asmjit::X86Gp>
   get_var_for_remap(std::map<const CipherNode *, JitBuilder> &mp,
                     JitContext &jc, const JitBuilder &builder, CipherNode *to,
                     int to_pos, CipherNode *from, int from_pos, int len,

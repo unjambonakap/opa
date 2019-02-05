@@ -1,8 +1,9 @@
 #pragma once
 
-#include <opa_common.h>
-#include <opa/utils/string.h>
+#include <opa/predef.h>
 #include <opa/utils/serialize_base.pb.h>
+#include <opa/utils/string.h>
+#include <opa_common.h>
 
 OPA_NM_UTILS
 
@@ -36,15 +37,25 @@ private:
 };
 #define OPA_SINGLETON_GETTER(T)                                                \
   friend class opa::utils::Singleton2<T>;                                      \
-  static T *get() { return opa::utils::Singleton2<T>::get(); }
+  static T *GetSingleton() { return opa::utils::Singleton2<T>::get(); }
 
 template <class T> T *Singleton2<T>::obj = nullptr;
 
 class ProtobufParams {
 public:
-  virtual ~ProtobufParams(){}
+  virtual ~ProtobufParams() {}
   virtual void load(const ::opa::utils::AnyMsg &any) = 0;
   virtual void store(::opa::utils::AnyMsg &any) const = 0;
+  virtual void after_load() {}
+  virtual void before_store() const {}
+  void load_entry(const ::opa::utils::AnyMsg &any) {
+    this->load(any);
+    this->after_load();
+  }
+  void store_entry(::opa::utils::AnyMsg &any) const {
+    this->before_store();
+    this->store(any);
+  }
 };
 
 class BaseStorable : public ProtobufParams {
@@ -72,7 +83,7 @@ private:
 
 template <class In, class Out> class MapperFunc : public BaseStorable {
 public:
-  virtual ~MapperFunc(){}
+  virtual ~MapperFunc() {}
   virtual void operator()(const In &in, Out &out) const = 0;
   std::shared_ptr<MapperFunc<In, Out> > non_owned_sptr() {
     return std::shared_ptr<MapperFunc<In, Out> >(this,
@@ -368,8 +379,8 @@ template <class T>
 static void tgen_load(std::vector<T> &x, const google::protobuf::Any &any);
 
 OPA_TGEN_BASE(bool, ::opa::utils::BaseBool);
-OPA_TGEN_BASE2(ProtobufParams, ::opa::utils::AnyMsg, { x.load(y); },
-               { x.store(y); });
+OPA_TGEN_BASE2(ProtobufParams, ::opa::utils::AnyMsg, { x.load_entry(y); },
+               { x.store_entry(y); });
 OPA_TGEN_BASE_TEMPLATE(::opa::utils::Storable<std::function<T> >,
                        ::opa::utils::AnyMsg, {}, {})
 
@@ -477,8 +488,7 @@ OPA_TGEN_BASE_TEMPLATE(std::set<T>, ::opa::utils::AnyMsg,
 }
 }
 , {
-  for (auto &k : x)
-    tgen_store(k, *y.add_any());
+  for (auto &k : x) tgen_store(k, *y.add_any());
 });
 
 template <class T>
@@ -489,13 +499,13 @@ static void anymsg_store(const T &a, ::opa::utils::AnyMsg &any);
 template <>
 void anymsg_load(opa::utils::ProtobufParams &a,
                  const ::opa::utils::AnyMsg &any) {
-  a.load(any);
+  a.load_entry(any);
 }
 
 template <>
 void anymsg_store(const opa::utils::ProtobufParams &a,
                   ::opa::utils::AnyMsg &any) {
-  a.store(any);
+  a.store_entry(any);
 }
 
 template <class T> void anymsg_load(T &a, const ::opa::utils::AnyMsg &any) {
@@ -513,6 +523,5 @@ struct DoubleRes : public ProtobufParams {
   double v;
   OPA_TGEN_IMPL(v);
 };
-
 
 OPA_NM_UTILS_END

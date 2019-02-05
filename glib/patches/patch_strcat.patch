@@ -1,0 +1,38 @@
+--- /home/benoit/programmation/repo/tensorflow/tensorflow/core/lib/strings/strcat.cc	2016-12-04 20:54:29.755119419 +0100
++++ ./glib/strings/strcat.cc	2016-12-04 22:59:51.796784910 +0100
+@@ -13,25 +13,21 @@
+ limitations under the License.
+ ==============================================================================*/
+ 
+-#include "tensorflow/core/lib/strings/strcat.h"
++#include "glib/strings/strcat.h"
+ 
+ #include <stdarg.h>
+ #include <stdint.h>
+ #include <stdio.h>
+ #include <string.h>
+ 
+-#include "third_party/eigen3/Eigen/Core"
+-#include "tensorflow/core/lib/gtl/stl_util.h"
+-#include "tensorflow/core/platform/logging.h"
++#include "glib/gtl/stl_util.h"
++#include "glib/platform/logging.h"
+ 
+-namespace tensorflow {
++namespace glib {
+ namespace strings {
+ 
+ AlphaNum gEmptyAlphaNum("");
+ 
+-AlphaNum::AlphaNum(const Eigen::half &f)
+-    : piece_(digits_, strlen(FloatToBuffer(static_cast<float>(f), digits_))) {}
+-
+ AlphaNum::AlphaNum(Hex hex) {
+   char *const end = &digits_[kFastToBufferSize];
+   char *writer = end;
+@@ -212,4 +208,4 @@
+ }
+ 
+ }  // namespace strings
+-}  // namespace tensorflow
++}  // namespace glib

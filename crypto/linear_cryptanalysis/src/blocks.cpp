@@ -277,20 +277,24 @@ void PermutationBlock::do_get_relations(Relations &rels) const {
 }
 
 void PermutationBlock::setup_jit(const JitBuilder &builder) const {
+  /*
   asmjit::X86GpVar tmp(*builder.c, asmjit::kVarTypeUIntPtr);
   asmjit::X86GpVar tmp2(*builder.c, asmjit::kVarTypeUIntPtr);
   builder.c->mov(tmp, asmjit::Imm((u64)m_perm.ptr()));
   builder.c->movzx(tmp2, *builder.input_vars[0]);
   int shift = 1;
   builder.c->mov(*builder.output_var, asmjit::x86::ptr(tmp, tmp2, shift));
+  */
 }
 
 void SboxBlock::setup_jit(const JitBuilder &builder) const {
+  /*
   asmjit::X86GpVar tmp(*builder.c, asmjit::kVarTypeUIntPtr);
   asmjit::X86GpVar tmp2(*builder.c, asmjit::kVarTypeUIntPtr);
   builder.c->mov(tmp, asmjit::Imm((u64)sbox.ptr()));
   builder.c->movzx(tmp2, *builder.input_vars[0]);
   builder.c->mov(*builder.output_var, asmjit::x86::ptr(tmp, tmp2));
+  */
 }
 
 void SboxBlock::do_get_relations_diff(Relations &rels) const {

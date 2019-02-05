@@ -224,10 +224,11 @@ BitVec CipherBlock::evaluate_jit(const BitVec &iv, const BitVec &kv) const {
 
 void CipherBlock::create_jit_builder(JitBuilder &builder,
                                      JitContext &jc) const {
+  /*
   OPA_CHECK0(jc.c != 0);
   JitBuilder res(jc.c);
   jc.vars.emplace_back(
-    new asmjit::X86GpVar(*jc.c, context()->jit().sizeToType(output_size())));
+      jc.c->newGpReg(context()->jit().sizeToType(output_size())));
   res.output_var = jc.vars.back().get();
 
   int var_size = call().input_base_size;
@@ -236,7 +237,7 @@ void CipherBlock::create_jit_builder(JitBuilder &builder,
   int nvars = raw_input_size() / var_size;
   REP (i, nvars) {
     jc.vars.emplace_back(
-      new asmjit::X86GpVar(*jc.c, context()->jit().sizeToType(var_size)));
+        jc.c->newGpReg(context()->jit().sizeToType(var_size)));
     res.input_vars.pb(jc.vars.back().get());
   }
 
@@ -245,20 +246,21 @@ void CipherBlock::create_jit_builder(JitBuilder &builder,
     OPA_DISP("CREATE JIT >> ", call().key_base_size, key_size());
     if (call().key_base_size < key_size()) {
       OPA_CHECK0(key_size() % call().key_base_size == 0);
-      jc.vars.emplace_back(
-        new asmjit::X86GpVar(*jc.c, asmjit::kVarTypeUIntPtr));
+      jc.vars.emplace_back(jc.c->newUIntPtr());
     } else {
       OPA_CHECK0(call().key_base_size == key_size());
       jc.vars.emplace_back(
-        new asmjit::X86GpVar(*jc.c, context()->jit().sizeToType(key_size())));
+          jc.c->newGpReg(context()->jit().sizeToType(key_size())));
     }
     res.key_var = jc.vars.back().get();
   }
 
   builder = res;
+  */
 }
 
 uintptr_t CipherBlock::get_jit_func() const {
+  /*
   if (!m_func) {
 
     asmjit::FileLogger logger(stdout);
@@ -295,6 +297,7 @@ uintptr_t CipherBlock::get_jit_func() const {
     m_func = (uintptr_t)c.make();
     OPA_DISP("func at >> ", m_func);
   }
+  */
   OPA_CHECK0(m_func != 0);
   return m_func;
 }

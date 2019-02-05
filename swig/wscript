@@ -5,5 +5,5 @@ from chdrft.waf.opa import WafBuilder
 x = WafBuilder(globals())
 
 x.auto()
-x.get(x.typ.LIB).update(register_name=x.libs.SwigCommon_N)
+x.get(x.typ.LIB).update(register_name=x.libs.SwigCommon_N, exports='/usr/lib/python3.7/site-packages/numpy/core/include')
 x.setup()

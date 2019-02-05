@@ -2,7 +2,7 @@
 
 #include <opa/dsp/inc.h>
 
-OPA_NAMESPACE(opa, dsp, gps)
+OPA_NAMESPACE_DECL3(opa, dsp, gps)
 
 constexpr int PRN_PERIOD = 1023;
 
@@ -33,4 +33,4 @@ private:
   Satellites();
 };
 
-OPA_NAMESPACE_END(opa, dsp, gps)
+OPA_NAMESPACE_DECL3_END

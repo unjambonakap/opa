@@ -58,13 +58,11 @@ public:
     return true;
   }
 
-  void setz() {
-    memset(&tb[0], 0, sizeof(tb[0]) * tb.size());
-  }
+  void setz() { memset(&tb[0], 0, sizeof(tb[0]) * tb.size()); }
 
   int count_set() const {
-    int res =0;
-    for (const auto &e : tb){
+    int res = 0;
+    for (const auto &e : tb) {
       res += count_bit(e);
     }
     return res;
@@ -210,7 +208,7 @@ public:
       tb[i] ^= a.tb[i];
   }
 
-  void sneg(){
+  void sneg() {
     REP (i, tb.size())
       tb[i] = ~tb[i];
   }
@@ -291,8 +289,8 @@ public:
   }
 
   std::vector<u64> tb;
-  int N2, M2;
-  int N, M;
+  int N2=0, M2=0;
+  int N=0, M=0;
 };
 
 template <typename TArray>
@@ -357,7 +355,7 @@ inline MulMatrixF2<true> mul(const MulMatrixF2<true> &a,
 }
 
 inline MulMatrixF2<false> mul2(const MulMatrixF2<true> &a,
-                             const MulMatrixF2<false> &b) {
+                               const MulMatrixF2<false> &b) {
   MulMatrixF2<false> res;
   OPA_CHECK0(a.M == b.N);
 
@@ -499,6 +497,7 @@ public:
   virtual Gf128_t2 getRandRaw() const { return { rng64(), rng64() }; }
 };
 
+class BitVecRepr;
 class BitVec : public opa::utils::Initable {
 public:
   BitVec() {}
@@ -506,9 +505,9 @@ public:
   virtual void init(int n) {
     opa::utils::Initable::init();
     this->n = n;
-    m_mat.init(n, 1);
+    m_mat.init(1, n);
   }
-  void setz(){m_mat.setz();}
+  void setz() { m_mat.setz(); }
 
   BitVec concat(const BitVec &peer) const {
     BitVec res(n + peer.n);
@@ -545,16 +544,10 @@ public:
     return res;
   }
 
-  int dot(const BitVec &x) const {
-    int res = 0;
-    REP (i, size())
-      res ^= get(i) & x.get(i);
-    return res;
-  }
+  int dot(const BitVec &x) const { return this->andz(x).count_set() & 1; }
+
   bool is_zero() const { return m_mat.is_zero(); }
-  int count_set() const {
-    return m_mat.count_set();
-  }
+  int count_set() const { return m_mat.count_set(); }
 
   static BitVec From(u64 v, s32 sz) {
     BitVec res(sz);
@@ -615,11 +608,11 @@ public:
     if (sz == -1) sz = size() - off;
   }
 
-  int size() const { return m_mat.M; }
+  int size() const { return this->n; }
 
-  u32 get(int a) const { return m_mat.get(a, 0); }
-  void set(int a, int v) { m_mat.set(a,0, v); }
-  void toggle(int a) { m_mat.toggle(a, 0); }
+  u32 get(int a) const { return m_mat.get(0, a); }
+  void set(int a, int v) { m_mat.set(0, a, v); }
+  void toggle(int a) { m_mat.toggle(0, a); }
   void xorv(int a, int v) {
     if (v) toggle(a);
   }
@@ -651,7 +644,8 @@ public:
     return res.sxorz(peer);
   }
   void xorz(u64 *target) const {
-    REP(i, m_mat.tb.size()) target[i] ^= this->m_mat.tb[i];
+    REP (i, m_mat.tb.size())
+      target[i] ^= this->m_mat.tb[i];
   }
 
   BitVec xorz(const RangeCoverage &x) const { return BitVec(*this).sxorz(x); }
@@ -703,9 +697,32 @@ public:
   Matrix<u32> to_mat() const { return m_mat.to_mat(); }
 
   MulMatrixF2<false> m_mat;
-  int n;
+  int n = 0;
+
+  BitVecRepr to_repr() const;
 
 private:
 };
+
+struct BitVecRepr : opa::utils::ProtobufParams {
+  std::vector<u64> v;
+  int n;
+
+  BitVec to_bitvec() const {
+
+    BitVec res;
+    res.init(n);
+    res.m_mat.tb = v;
+    return res;
+  }
+
+  OPA_TGEN_IMPL(v, n);
+};
+inline BitVecRepr BitVec::to_repr() const {
+  BitVecRepr res;
+  res.v = m_mat.tb;
+  res.n = n;
+  return res;
+}
 
 OPA_NM_MATH_COMMON_END

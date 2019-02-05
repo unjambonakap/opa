@@ -1,0 +1,141 @@
+set(Boost_USE_STATIC_LIBS    OFF)
+set(Boost_USE_MULTITHREADED  ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+find_package(Boost REQUIRED COMPONENTS thread system) # function is a pure header library
+include_directories(${Boost_INCLUDE_DIRS})
+set(libraries_shared ${libraries_shared} ${Boost_LIBRARIES})
+
+set(Boost_USE_STATIC_LIBS    ON)
+set(Boost_USE_MULTITHREADED  ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+find_package(Boost REQUIRED COMPONENTS thread system) # function is a pure header library
+include_directories(${Boost_INCLUDE_DIRS})
+set(libraries ${libraries} ${Boost_LIBRARIES})
+
+find_package(GMP REQUIRED)
+include_directories(${GMP_INCLUDE_DIR})
+if(NOT (GMP_INCLUDE_DIR AND GMP_LIBRARIES))
+    message(FATAL_ERROR "Could not find GMP!")
+endif(NOT (GMP_INCLUDE_DIR AND GMP_LIBRARIES))
+set(libraries ${libraries} ${GMP_LIBRARIES})
+set(libraries_shared ${libraries_shared} ${GMP_LIBRARIES})
+
+find_package(MPFR REQUIRED)
+include_directories(${MPFR_INCLUDES})
+if(NOT MPFR_FOUND)
+    message(FATAL_ERROR "Could not find MPFR!")
+endif(NOT MPFR_FOUND)
+set(libraries ${libraries} ${MPFR_LIBRARIES})
+set(libraries_shared ${libraries_shared} ${MPFR_LIBRARIES})
+
+include(CheckCXXSourceCompiles)
+CHECK_CXX_SOURCE_COMPILES("
+    template<typename U>
+    class A { };
+    class B { };
+    template<typename T>
+    class C
+    {
+    friend class A<T>;
+    friend class B;
+    };
+    int main() { }
+    " TemplateFriends)
+if(NOT TemplateFriends)
+    set(PLLL_INTERNAL_NO_TEMPLATE_FRIENDS TRUE)
+    message(STATUS "Compiler does not support template friends! Eliminate 'private:' from headers.")
+else(NOT TemplateFriends)
+    set(PLLL_INTERNAL_NO_TEMPLATE_FRIENDS FALSE)
+    message(STATUS "Compiler supports template friends.")
+endif(NOT TemplateFriends)
+
+include(CheckCXXSourceRuns)
+CHECK_CXX_SOURCE_RUNS("
+    struct LDExtractEP
+    {
+        unsigned long mantissa : 64;
+        unsigned long exp : 15;
+        unsigned long sign : 1;
+        unsigned long rest : 48;
+    };
+    int main()
+    {
+        union
+        {
+            long double num;
+            LDExtractEP e;
+        } v;
+        v.num = 1.0;
+        if ((v.e.mantissa != 9223372036854775808ul) || (v.e.exp != 16383) || (v.e.sign != 0)) return 1;
+        v.num = -123.0;
+        if ((v.e.mantissa != 17726168133330272256ul) || (v.e.exp != 16389) || (v.e.sign != 1)) return 1;
+        v.num = 0.125;
+        if ((v.e.mantissa != 9223372036854775808ul) || (v.e.exp != 16380) || (v.e.sign != 0)) return 1;
+        return 0;
+    }
+    " LongDoubleIsEP)
+CHECK_CXX_SOURCE_RUNS("
+    #include <iostream>
+    int main()
+    {
+        union {
+            long double num;
+            unsigned long e[2];
+        } v;
+        v.num = 1.0;
+        if ((v.e[0] != 1073676288ul) || (v.e[1] != 0)) return 1;
+        v.num = -123.0;
+        if ((v.e[0] != 3221613568ul) || (v.e[1] != 0)) return 1;
+        v.num = 0.125;
+        if ((v.e[0] != 1073479680ul) || (v.e[1] != 0)) return 1;
+        return 0;
+    }
+    " LongDoubleIsQP)
+if(LongDoubleIsEP)
+    if(LongDoubleIsQP)
+        message(FATAL_ERROR "Could not determine 'long double' type!")
+    else(LongDoubleIsQP)
+        set(LONGDOUBLE_TYPE "EP")
+        message(STATUS "Long double type is Extended Precision.")
+    endif(LongDoubleIsQP)
+else(LongDoubleIsEP)
+    if(LongDoubleIsQP)
+        set(LONGDOUBLE_TYPE "QP")
+        message(STATUS "Long double type is Quadruple Precision.")
+    else(LongDoubleIsQP)
+        message(FATAL_ERROR "Could not determine 'long double' type!")
+    endif(LongDoubleIsQP)
+endif(LongDoubleIsEP)
+
+find_package(QD)
+include_directories(${QD_INCLUDES})
+if(QD_FOUND)
+    set(libraries ${libraries} ${QD_LIBRARY})
+    set(libraries_shared ${libraries_shared} ${QD_LIBRARY})
+    message(STATUS "Using QuadDouble (QD) library.")
+else(QD_FOUND)
+    set(PLLL_CONFIG_NO_ARITHMETIC_DOUBLEDOUBLE True)
+    set(PLLL_CONFIG_NO_ARITHMETIC_QUADDOUBLE True)
+    message(WARNING "Could not find the QuadDouble (QD) library! Removing QD support.")
+endif(QD_FOUND)
+
+include(CheckLibraryExists)
+CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME_RT_POSIX)
+if(HAVE_CLOCK_GETTIME_RT_POSIX)
+    set(libraries ${libraries} rt)
+    set(libraries_shared ${libraries_shared} rt)
+    set(PLLL_INTERNAL_HR_POSIX TRUE)
+else(HAVE_CLOCK_GETTIME_RT_POSIX)
+    CHECK_LIBRARY_EXISTS(m gethrtime "time.h" HAVE_CLOCK_GETTIME_RT_SUN)
+    if(HAVE_CLOCK_GETTIME_RT_SUN)
+        set(PLLL_INTERNAL_HR_SOLARIS TRUE)
+    else(HAVE_CLOCK_GETTIME_RT_SUN)
+        message(WARNING "No high resolution time available. Using fallback.")
+    endif(HAVE_CLOCK_GETTIME_RT_SUN)
+endif(HAVE_CLOCK_GETTIME_RT_POSIX)
+
+find_package(Threads REQUIRED)
+set(libraries ${libraries} ${CMAKE_THREAD_LIBS_INIT})
+set(libraries_shared ${libraries_shared} ${CMAKE_THREAD_LIBS_INIT})

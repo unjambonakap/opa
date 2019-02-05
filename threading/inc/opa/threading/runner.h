@@ -1,11 +1,11 @@
 #pragma once
 
-#include <opa_common.h>
-#include <opa/utils/register.h>
+#include <opa/threading/client_dispatcher.h>
 #include <opa/threading/data.h>
 #include <opa/threading/dispatcher.h>
-#include <opa/threading/client_dispatcher.h>
 #include <opa/threading/worker.h>
+#include <opa/utils/register.h>
+#include <opa_common.h>
 
 OPA_NAMESPACE_DECL2(opa, threading)
 
@@ -73,4 +73,9 @@ private:
   }                                                                            \
   OPA_REGISTER_INIT(FUNC##jobname, opa_cloudy_register_##jobname);
 
+#define OPA_CLOUDY_JOB_DECL2(cl)                                               \
+  OPA_CLOUDY_JOB_DECL                                                          \
+  static SPTR(cl) createJob() {                                                       \
+    return SPTR(cl)(opa::threading::Runner::GetJob<cl>(cl::JobName));          \
+  }
 OPA_NAMESPACE_DECL2_END

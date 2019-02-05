@@ -1,0 +1,94 @@
+/*
+    Copyright (c) 2011-2014 University of Zurich
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+    
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+    
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+    THE SOFTWARE.
+*/
+
+#ifndef PLLL_INCLUDE_GUARD__CONFIG_HPP
+#define PLLL_INCLUDE_GUARD__CONFIG_HPP
+
+/**
+   \file
+   \brief Compile-time configuration file.
+   
+   This header provides compile-time configuration settings for the `plll` library. Usually this
+   configuration will be done by `cmake`.
+*/
+namespace plll
+{
+}
+
+// Select type for "long double". Possible choices:
+//    EP   - extended precision (for example, Intel CPUs)
+//    QP   - quadruple precision (for example, UltraSparc CPUs)
+#define PLLL_INTERNAL_LONGDOUBLE PLLL_INTERNAL_LONGDOUBLE_@LONGDOUBLE_TYPE@
+
+// Select high resolution timer code. Define
+//    PLLL_INTERNAL_HR_POSIX     for modern Linux systems, and
+//    PLLL_INTERNAL_HR_SOLARIS   for modern Solaris systems.
+// If nothing is defined, a direct approach reading out the RDTCS values is used, which will only
+// work on some systems.
+#cmakedefine PLLL_INTERNAL_HR_POSIX
+#cmakedefine PLLL_INTERNAL_HR_SOLARIS
+
+// If PLLL_INTERNAL__BIGINT__HELP_FINDING_PRECISION_BUGS is defined, all binary BigInt::Real
+// operations are equiped with asserts to verify that both operands have the same precision. The functions
+//       Real_precision_check_disable()
+// and   Real_precision_check_enable()
+// can be used to enable or disable the assertions. If
+// PLLL_INTERNAL__BIGINT__HELP_FINDING_PRECISION_BUGS is not defined, no verification code is
+// inserted and the functions Real_precision_check_enable() and Real_precision_check_disable() are
+// defined as inline with empty body.
+#cmakedefine PLLL_INTERNAL__BIGINT__HELP_FINDING_PRECISION_BUGS
+
+// If defined, all private: definition from template classes are removed. This is required for
+// certain compilers, such as older Sun Studio versions.
+#cmakedefine PLLL_INTERNAL_NO_TEMPLATE_FRIENDS
+
+// Disable certain arithmetic (for rational/real numbers)
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_RATIONAL
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_REAL
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_DOUBLE
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_LONGDOUBLE
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_DOUBLEDOUBLE
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_QUADDOUBLE
+
+// Disable certain arithmetic (for integers)
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_BIGINT
+#cmakedefine PLLL_CONFIG_NO_ARITHMETIC_LONG
+
+// Disable certain Gram-Schmidt methods
+#cmakedefine PLLL_CONFIG_NO_GS_CLASSIC
+#cmakedefine PLLL_CONFIG_NO_GS_CLASSICINT
+#cmakedefine PLLL_CONFIG_NO_GS_GIVENS
+#cmakedefine PLLL_CONFIG_NO_GS_NUMSTABLE
+
+#if __cplusplus >= 201103L
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX_ENFORCE noexcept(true)
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX noexcept(true)
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX_INLINE noexcept(true)
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX_CONDITIONAL(cond) noexcept(cond)
+#else
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX_ENFORCE throw()
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX throw()
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX_INLINE
+  #define PLLL_INTERNAL_NOTHROW_POSTFIX_CONDITIONAL(cond)
+#endif
+
+#endif

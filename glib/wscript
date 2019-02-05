@@ -1,0 +1,11 @@
+#!/usr/bin/env python
+
+from chdrft.waf.opa import WafBuilder
+import re
+
+
+x = WafBuilder(globals())
+x.auto_proto(proto_base='./')
+x.auto_lib(base_dir='./glib', include_root=True, filter_func=lambda x: not re.match('(.*/test_.*.cc)|(.*test.cc)', x))
+x.get(x.typ.LIB).update(register_name=x.libs.GoogleCommon_N, features='cxxshlib')
+x.setup()

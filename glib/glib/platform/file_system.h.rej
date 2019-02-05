@@ -1,0 +1,66 @@
+--- file_system.cc	2016-12-04 20:54:29.765119359 +0100
++++ file_system.cc	2016-12-04 23:19:54.035519144 +0100
+@@ -17,19 +17,18 @@
+ #include <algorithm>
+ #include <deque>
+ 
+-#include "glib/core/errors.h"
+-#include "glib/core/threadpool.h"
+-#include "glib/gtl/map_util.h"
+-#include "glib/gtl/stl_util.h"
+-#include "glib/io/path.h"
+-#include "glib/strings/str_util.h"
+-#include "glib/strings/strcat.h"
+-#include "glib/platform/env.h"
+-#include "glib/platform/file_system.h"
+-#include "glib/platform/platform.h"
+-#include "glib/platform/protobuf.h"
++#include "glib/core/errors.h"
++#include "glib/gtl/map_util.h"
++#include "glib/gtl/stl_util.h"
++#include "glib/io/path.h"
++#include "glib/strings/str_util.h"
++#include "glib/strings/strcat.h"
++#include "glib/platform/env.h"
++#include "glib/platform/file_system.h"
++#include "glib/platform/platform.h"
++#include "glib/platform/protobuf.h"
+ 
+-namespace glib {
++namespace glib {
+ 
+ namespace {
+ 
+@@ -38,17 +37,9 @@
+ // Run a function in parallel using a ThreadPool, but skip the ThreadPool
+ // on the iOS platform due to its problems with more than a few threads.
+ void ForEach(int first, int last, std::function<void(int)> f) {
+-#if TARGET_OS_IPHONE
+   for (int i = first; i < last; i++) {
+     f(i);
+   }
+-#else
+-  int num_threads = std::min(kNumThreads, last - first);
+-  thread::ThreadPool threads(Env::Default(), "ForEach", num_threads);
+-  for (int i = first; i < last; i++) {
+-    threads.Schedule([f, i] { f(i); });
+-  }
+-#endif
+ }
+ 
+ }  // anonymous namespace
+@@ -67,7 +58,7 @@
+   if (stat.is_directory) {
+     return Status::OK();
+   }
+-  return Status(glib::error::FAILED_PRECONDITION, "Not a directory");
++  return Status(glib::error::FAILED_PRECONDITION, "Not a directory");
+ }
+ 
+ RandomAccessFile::~RandomAccessFile() {}
+@@ -227,4 +218,4 @@
+   return Status::OK();
+ }
+ 
+-}  // namespace glib
++}  // namespace glib

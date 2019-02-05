@@ -23,21 +23,21 @@ public:
 
 struct JitContext {
   asmjit::X86Compiler *c;
-  std::vector<std::unique_ptr<asmjit::X86GpVar> > vars;
+  std::vector<std::unique_ptr<asmjit::X86Gp> > vars;
 };
 
 struct JitBuilder {
 public:
-  std::vector<asmjit::X86GpVar *> input_vars;
-  asmjit::X86GpVar *key_var = nullptr;
-  asmjit::X86GpVar *output_var = nullptr;
+  std::vector<asmjit::X86Gp *> input_vars;
+  asmjit::X86Gp *key_var = nullptr;
+  asmjit::X86Gp *output_var = nullptr;
   asmjit::X86Compiler *c = nullptr;
 
   JitBuilder() {}
   JitBuilder(asmjit::X86Compiler *c) { this->c = c; }
   JitBuilder(asmjit::X86Compiler *c,
-             const std::vector<asmjit::X86GpVar *> &input_vars,
-             asmjit::X86GpVar *key_var, asmjit::X86GpVar *output_var) {
+             const std::vector<asmjit::X86Gp *> &input_vars,
+             asmjit::X86Gp *key_var, asmjit::X86Gp *output_var) {
     this->c = c;
     this->input_vars = input_vars;
     this->key_var = key_var;
@@ -46,7 +46,7 @@ public:
 };
 class JitUtil {
 public:
-  asmjit::VarType sizeToType(int size) const;
+  asmjit::TypeId::Id sizeToType(int size) const;
 };
 
 OPA_NAMESPACE_END(opa, crypto, la)

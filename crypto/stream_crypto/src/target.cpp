@@ -105,11 +105,6 @@ void SboxLfsrSolver::init(const Params &params) {
   OPA_DISP("input len >> ", m_input_len, m_params.ans_input.size(), m_nlfsr);
 }
 
-void SboxLfsrSolver::load_plan(SolverPlan *plan) {
-  m_plan = plan;
-  configure_output_bits(m_plan->m_known_data);
-}
-
 std::vector<la::Relation> SboxLfsrSolver::get_used_relations() const {
   const auto &sbox_desc = m_params.lfsr.sbox();
   SboxBlock blk;
@@ -151,12 +146,12 @@ void SboxLfsrSolver::configure_output_bits(const std::set<int> &data) {
 }
 
 void SboxLfsrSolver::load_plan_from_data(const std::set<int> &known_data) {
-  m_own_plan.reset(new SolverPlan);
+  m_own_plan =  SolverPlan::getCl();
   int output_len = known_data.size();
-  m_plan = m_own_plan.get();
+  m_plan = m_own_plan;
   auto used_rels = get_used_relations();
 
-  m_plan->init(m_input_len, known_data);
+  m_plan->init(m_input_len);
   RelsStore &store = m_plan->m_rels_store;
 
   configure_output_bits(known_data);
@@ -244,7 +239,7 @@ BitVec SboxLfsrSolver::solve(const ObservedData &obs_data) {
   }
 
   solver.init(params);
-  BitVec key = solver.solve();
+  BitVec key = solver.solve_best();
 
   check_key(key, obs_data);
   return key;
