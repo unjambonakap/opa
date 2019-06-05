@@ -297,7 +297,7 @@ void factor_zpoly_squarefree(const P_Z &poly, std::vector<P_Z> *result) {
     std::set<bignum> seen;
     for (auto &factor : factors) {
       gfp_pr.smonic(factor);
-      bignum v = gfp_pr.to_base(gfp_pr.monic(factor));
+      bignum v = gfp_pr.export_base(gfp_pr.monic(factor));
       seen.insert(v);
     }
     // not squarefree for this prime, nop

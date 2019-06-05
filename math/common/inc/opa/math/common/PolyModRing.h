@@ -33,10 +33,10 @@ public:
   PolyModRing() {}
   PolyModRing(const Ring<T> *ring, const Poly<T> &mod) { init(ring, mod); }
 
-  const PolyRingBase *pur_pr() const { return m_pur_pr; }
+  const PolyRingBase *pur_pr() const { return &m_pur_pr; }
 
   virtual bool isInv(const Poly<T> &a) const {
-    OPA_DISP0(m_pur_pr.gcd(to_pur(a), m_mod), a, m_mod);
+    //OPA_DISP0(m_pur_pr.gcd(to_pur(a), m_mod), a, m_mod);
     Poly<T> tmp =  m_pur_pr.gcd(to_pur(a), m_mod);
     return (tmp.deg() == 0 && this->m_ring->isInv(tmp[0]));
   }

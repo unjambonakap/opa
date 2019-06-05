@@ -349,7 +349,6 @@ public:
     std::vector<int> pos;
     int count = 0;
     int c = 0;
-    OPA_DISP0(a);
 
     REP (i, d + 1) {
       int lastc = c;
@@ -963,7 +962,6 @@ template <class T> std::vector<T> Matrix<T>::solve(std::vector<T> y) const {
             std::swap(y[i], y[j]);
           }
           OPA_CHECK(ring->isInv(u), u, v, d, tmp(i, i), tmp(j, i));
-          OPA_DISP0(ring->gcd(u, v), u, v, d);
 
           OPA_CHECK(!ring->isZ(u), tmp(i, i), tmp(j, i), u, v, d);
           T c = ring->neg(ring->div(tmp(j, i), d));
@@ -981,7 +979,6 @@ template <class T> std::vector<T> Matrix<T>::solve(std::vector<T> y) const {
     }
   }
 
-  OPA_DISP0(tmp, y);
   // solve failed
   for (int i = m; i < n; ++i)
     if (!ring->isZ(y[i])) {
@@ -1003,7 +1000,6 @@ template <class T> std::vector<T> Matrix<T>::solve(std::vector<T> y) const {
     x[i] = ring->div(sum, tmp(i, i));
     OPA_CHECK(ring->mul(tmp(i, i), x[i]) == sum, i, x[i], tmp(i, i), y[i], sum);
   }
-  OPA_DISP0(tmp.eval(x), y);
 
   return x;
 }
@@ -1097,11 +1093,9 @@ template <class T> T Matrix<T>::get_det_row_echelon() {
   OPA_CHECK0(is_square());
   T det_mul;
   this->row_echelon_gcd(&det_mul);
-  OPA_DISP0(*this);
   T det = ring->getE();
   REP (i, getN()) {
     det = ring->mul(det, get(i, i));
-    OPA_DISP0(i, get(i, i), det);
   }
   return det;
 }

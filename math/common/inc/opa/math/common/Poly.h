@@ -137,6 +137,7 @@ public:
     return poly < x.poly;
   }
 
+  OPA_DECL_STR_FROM_COUT();                                             \
   friend std::ostream &operator<<(std::ostream &os, const Poly<T> &a) {
     if (!a.m_ring) {
       os << "0";

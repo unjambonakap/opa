@@ -263,7 +263,7 @@ std::vector<T> findMinLinearRecursion_Slow(const Ring<T> &ring,
                                            const std::vector<T> &tb, int maxd) {
   maxd = std::min<int>(tb.size() / 2, maxd);
   // TODO: fix loop order
-  for (int i = maxd; i >= 1; --i) {
+  FOR(i, 1, maxd){
 
     Matrix<T> matrix(&ring, i, i);
     std::vector<T> b(i, ring.getZ());
@@ -272,7 +272,6 @@ std::vector<T> findMinLinearRecursion_Slow(const Ring<T> &ring,
         matrix(j, k) = tb[j + i - 1 - k];
       b[j] = tb[j + i];
     }
-
     std::vector<T> x = matrix.solve(b);
 
     if (x.size() != 0) {

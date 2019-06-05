@@ -25,7 +25,6 @@ PolyRing<P_QQf> Qf_xyz;
 void init_math_types() {
   static bool is_init = false;
   if (!is_init) {
-    Float_init();
     GF2.init(2);
     PR_GF2.init(&GF2);
     QF.init(&Ring_Z, true /* do_reduce */);
@@ -56,7 +55,5 @@ const GF_p &get_gfp(u32 p) {
   }
   return g_gfps[p];
 }
-
-OPA_REGISTER_INIT(init_math_types, init_math_types);
 
 OPA_NAMESPACE_END(opa, math, common)

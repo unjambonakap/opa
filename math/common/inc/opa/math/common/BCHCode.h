@@ -5,6 +5,7 @@
 #include <opa/math/common/UtilsGFq.h>
 #include <opa/math/common/CyclicCode.h>
 #include <opa/math/common/FFT.h>
+#include <opa/math/common/algo.h>
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 
@@ -26,14 +27,14 @@ std::vector<std::vector<int> > findCosets(int q, int n) {
 }
 
 template <class T>
-Poly<T> findBCHPoly(const Field<T> &baseField, int n, int j0, int t,
+Poly<T> findBCHPoly(const Field<T> *baseField, int n, int j0, int t,
                     GF_q<T> *&extField, Poly<T> &w) {
   typedef T BASE_TYPE;
   typedef Poly<T> EXT_TYPE;
 
   assert(j0 + 2 * t < n);
 
-  int q = baseField.getSizeU32();
+  int q = baseField->getSizeU32();
   int m = 1;
   int tmp = q;
   for (; (tmp - 1) % n != 0 && m < 100; ++m, tmp = tmp * q)
@@ -45,7 +46,7 @@ Poly<T> findBCHPoly(const Field<T> &baseField, int n, int j0, int t,
   w = extField->getNthRoot(n);
 
   std::vector<std::vector<int> > cosets = findCosets(q, n);
-  PolyRing<EXT_TYPE> pr(*extField);
+  PolyRing<EXT_TYPE> pr(extField);
 
   Poly<EXT_TYPE> res = pr.getE();
 
@@ -62,8 +63,8 @@ Poly<T> findBCHPoly(const Field<T> &baseField, int n, int j0, int t,
       }
     }
   }
-  assert(isInBaseField(*extField, res));
-  return toBaseField(*extField, res);
+  OPA_CHECK0(isInBaseField(extField, res));
+  return toBaseField(extField, res);
 }
 
 template <class T> class BCHCode : public CyclicCode<T> {
@@ -71,10 +72,10 @@ template <class T> class BCHCode : public CyclicCode<T> {
   Poly<T> m_w;
   int n, j0, t;
 
-  const Field<T> &m_baseField;
+  const Field<T> *m_baseField;
   GF_q<T> *m_extField;
 
-  BCHCode(const Field<T> &baseField, int n, int j0, int t, GF_q<T> *extField,
+  BCHCode(const Field<T> *baseField, int n, int j0, int t, GF_q<T> *extField,
           const Poly<T> &w, const Poly<T> &poly)
       : CyclicCode<T>(baseField, poly, n), m_baseField(baseField), n(n), j0(j0),
         t(t), m_poly(poly), m_w(w), m_extField(extField) {
@@ -88,7 +89,7 @@ template <class T> class BCHCode : public CyclicCode<T> {
 public:
   ~BCHCode() { delete m_extField; }
 
-  static BCHCode *getNew(const Field<T> &baseField, int n, int j0, int t) {
+  static BCHCode *getNew(const Field<T> *baseField, int n, int j0, int t) {
     GF_q<T> *extField;
     Poly<T> w;
     Poly<T> poly = findBCHPoly(baseField, n, j0, t, extField, w);
@@ -101,8 +102,8 @@ public:
 
     std::vector<BASE_TYPE> res;
     PolyRing<BASE_TYPE> pr(m_baseField);
-    PolyRing<EXT_TYPE> extPr(*m_extField);
-    Poly<EXT_TYPE> m2 = toExtField(*m_extField, pr.import(msg));
+    PolyRing<EXT_TYPE> extPr(m_extField);
+    Poly<EXT_TYPE> m2 = toExtField(m_extField, pr.import(msg));
 
     std::vector<EXT_TYPE> tb(2 * t + 1);
     EXT_TYPE ww = m_extField->faste(m_w, j0);
@@ -155,9 +156,9 @@ public:
     if (sz != errorPos.size())
       goto fail;
 
-    if (m_baseField.getSize() == 2) {
+    if (m_baseField->getSize() == 2) {
       for (int j = 0; j < errorPos.size(); ++j)
-        pr.set1(errPoly, errorPos[j], m_baseField.getE());
+        pr.set1(errPoly, errorPos[j], m_baseField->getE());
     } else {
       Matrix<EXT_TYPE> errMatrix(m_extField, sz, sz);
       for (int j = 0; j < sz; ++j)
@@ -173,7 +174,7 @@ public:
       assert(x.size() != 0);
       out(x);
       for (int j = 0; j < sz; ++j)
-        pr.set1(errPoly, errorPos[j], toBaseField1(*m_extField, x[j]));
+        pr.set1(errPoly, errorPos[j], toBaseField1(m_extField, x[j]));
     }
 
     msgPoly = pr.import(msg);
@@ -188,5 +189,7 @@ public:
     return std::vector<T>();
   }
 };
+typedef BCHCode<u32> BCHCode_u32;
+typedef BCHCode<Poly<u32>> BCHCode_P_u32;
 
 OPA_NAMESPACE_DECL3_END

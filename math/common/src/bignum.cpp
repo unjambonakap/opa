@@ -22,12 +22,13 @@ OPA_NAMESPACE_DECL3(opa, math, common)
 struct MpzWrap : public __mpz_struct {};
 struct MpzRandState : public __gmp_randstate_struct {};
 
-MpzRandState *bignum::randState = 0;
+MpzRandState *g_bignum_rand_state = 0;
 
-void bignum::static_init() {
-  bignum::randState = new MpzRandState();
-  gmp_randinit_default(bignum::randState);
-  gmp_randseed_ui(bignum::randState, 0x126);
+
+void bignum_init(int seed) {
+  g_bignum_rand_state = new MpzRandState();
+  gmp_randinit_default(g_bignum_rand_state);
+  gmp_randseed_ui(g_bignum_rand_state, seed);
 }
 
 bignum bignum::froms32(s32 x) {
@@ -68,7 +69,6 @@ bignum bignum::fromu64(u64 x) {
 }
 
 void bignum::init() {
-  if (randState == 0) static_init();
   a = new MpzWrap;
   mpz_init(a);
 }
@@ -123,7 +123,9 @@ bignum bignum::fromrbytes(opa::stolen::StringRef b) {
   return frombytes(rb);
 }
 
-void bignum::loadstr(const char *b, int base) { mpz_set_str(a, b, base); }
+void bignum::loadstr(const char *b, int base) {
+  bad = mpz_set_str(a, b, base) == -1;
+}
 
 bignum bignum::operator+(const bignum &b) const { return add(b); }
 
@@ -228,7 +230,8 @@ bignum bignum::egcd(const bignum &b, bignum &u, bignum &v) const {
 void bignum::ssqrt() { mpz_sqrt(a, a); }
 
 bignum bignum::rand() const {
-  DO_MPZ_OP(mpz_urandomm(res.a, bignum::randState, a), res);
+  OPA_CHECK0(g_bignum_rand_state!=0);
+  DO_MPZ_OP(mpz_urandomm(res.a, g_bignum_rand_state, a), res);
 }
 
 bignum bignum::rand_signed() const { return this->rand() - (*this) / 2; }

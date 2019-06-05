@@ -19,7 +19,7 @@ struct MpfrGState {
 };
 class FloatRng;
 class bignum;
-void Float_init();
+void Float_init(int seed);
 
 class Float {
   friend class FloatRng;

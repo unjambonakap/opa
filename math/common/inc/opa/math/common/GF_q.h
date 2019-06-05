@@ -11,13 +11,15 @@ OPA_NAMESPACE_DECL3(opa, math, common)
 template <typename T> class GF_q : public PolyModField<T> {
 private:
   const Field<T> *m_base_field;
-  Poly<T> m_modPoly;
   bignum m_qm1;
   std::vector<Poly<T> > pw_cache;
+  int m_p, m_q;
 
 public:
+  OPA_ACCESSOR_R(int , m_p, p);
+  OPA_ACCESSOR_R(int , m_q, q);
+
   void construct(const Poly<T> &p) {
-    m_modPoly = p;
     m_qm1 = this->getSize() - 1;
   }
 
@@ -28,14 +30,16 @@ public:
   }
 
   void init(const Field<T> *base_field, int m) {
-    puts("try ot find ireed");
     Poly<T> irred = find_primitive_poly(*base_field, m);
+    OPA_CHECK0(m == irred.deg());
     this->init(base_field, irred);
   }
 
   void init(const Field<T> *base_field, const Poly<T> &p) {
     PolyModField<T>::init(base_field, p);
     construct(p);
+    this->m_p = base_field->getSizeU32();
+    this->m_q = p.deg();
     REP (i, 2 * this->m_mod.size() - 1) { pw_cache.pb(this->import(this->xpw(i))); }
   }
 
@@ -71,8 +75,8 @@ public:
   }
 
   virtual Poly<T> inv(const Poly<T> &a) const {
-    Poly<T> res = this->faste(a, m_qm1 - 1, m_modPoly);
-    OPA_CHECK0(this->mul(res, a) == this->getE());
+    Poly<T> res = this->faste(a, m_qm1 - 1);
+    OPA_CHECK(this->mul(res, a) == this->getE(), res, a, this->mul(res, a), this->m_mod, this);
     return res;
   }
 

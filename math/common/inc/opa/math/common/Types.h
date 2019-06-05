@@ -14,6 +14,8 @@ OPA_NM_MATH_COMMON
 
 typedef opa::math::common::Fraction<bignum> FFloat;
 typedef opa::math::common::FractionField<bignum> QField;
+typedef Poly<u32> Poly_u32;
+typedef GF_q<u32> GF_q_u32;
 typedef FFloat Q;
 typedef Float Qf;
 typedef Poly<bignum> P_Z;

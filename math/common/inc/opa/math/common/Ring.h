@@ -46,6 +46,10 @@ public:
 
   Ring<T>() {}
   Ring<T>(const bignum &size, const bignum &car) { init(size, car); }
+  virtual bignum export_base(const T &x) const {
+    OPA_CHECK0(0);
+    return bignum();
+  }
 
   const bignum &getSize() const { return m_size; }
   bignum getCar() const { return m_car; }
@@ -155,11 +159,16 @@ public:
     assert(0);
     return T();
   }
-  virtual int get_poly_pos() const { return 0; } // return id of poly variable
-                                                 // eoi
+  virtual int get_poly_pos() const {
+    return 0;
+  } // return id of poly variable
+    // eoi
 
   virtual void norm_fraction(T &a, T &b) const {}
-  virtual T abs(const T &a) const {assert(0); return a;}
+  virtual T abs(const T &a) const {
+    assert(0);
+    return a;
+  }
 
 protected:
   T _gcd(const T &a, const T &b) const;
@@ -177,7 +186,7 @@ template <class T> T Ring<T>::gcd(const T &a, const T &b) const {
 template <class T> T Ring<T>::_gcd(const T &a, const T &b) const {
   T xa = a;
   T xb = b;
-  while(!isZ(xb)){
+  while (!isZ(xb)) {
     T r;
     bool res = ediv(xa, xb, 0, &r);
     // std::cout << b << std::endl;

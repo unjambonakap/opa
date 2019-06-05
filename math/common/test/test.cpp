@@ -1117,6 +1117,28 @@ TEST(BasicOp, ComplexOp) {
   OPA_DISP0(v / dv, CF->div(v, dv));
 }
 
+TEST(T1, RSCode) {
+  RSCode_u32 rscode;
+  GF_q_u32 gf256(&GF2, 8);
+  OPA_DISP0(gf256.getModPoly(), &gf256);
+
+  int n = 255;
+  int k = 223;
+
+  std::vector<u32> data;
+  srand(0);
+  REP (i, k * 8)
+    data.push_back(rand() % 2);
+  rscode.init(&gf256, n, k);
+  std::vector<Poly_u32> c = rscode.encode(pack_vector_gfq(&gf256, data));
+  c[0] = c[0] + gf256.getE();
+  c[5] = c[5] + gf256.getE();
+  c[n-1] = c[n-1] + gf256.getE();
+  std::vector<Poly_u32> res_enc = rscode.decode(c);
+  std::vector<u32> res =  unpack_vector_gfq(&gf256, res_enc);
+  OPA_CHECK0(data == res);
+}
+
 GTEST_API_ int main(int argc, char **argv) {
   printf("Running main() from gtest_main.cc\n");
   testing::InitGoogleTest(&argc, argv);

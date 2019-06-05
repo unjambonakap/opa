@@ -1,8 +1,8 @@
 #pragma once
 #include <opa/crypto/base.h>
-#include <opa/utils/DataStruct.h>
 #include <opa/threading/auto_job.h>
 #include <opa/threading/runner.h>
+#include <opa/utils/DataStruct.h>
 
 OPA_NM_CRYPTO_CRACKER
 
@@ -26,30 +26,52 @@ public:
     m_params = params;
     m_unit.n_res = params.n_res;
     m_unit.checker = params.checker;
+    for (auto &pattern : params.patterns) {
+      OPA_CHECK0(pattern.per_char_vals.size() == 0 ||
+                 pattern.per_char_vals.size() == pattern.mp.size());
+    }
   }
 
   opa::threading::Job &get_job() { return *this; }
 
   bool go(int pos, bool gen) {
-    if (gen && pos == std::min((int)pattern().mp.size() - 1, 1)) {
-      bool more;
-      m_unit.pos = pos;
-      cb()(m_unit, more);
-      return !more;
+    if (gen) {
+      bool start_dispatch = false;
+      if (pattern().shard_at != -1)
+        start_dispatch = pattern().shard_at == pos;
+      else
+        start_dispatch = (pos == std::min((int)pattern().mp.size() - 1, 1));
+
+      if (start_dispatch) {
+        bool more;
+        m_unit.pos = pos;
+        cb()(m_unit, more);
+        return !more;
+      }
     }
 
     if (pos == pattern().mp.size()) {
       if (checker()(cur())) {
+        OPA_DISP("Got result ", opa::utils::b2h(cur()));
         m_res.tb.pb(cur());
-        return m_res.tb.size()  == m_unit.n_res;
+        return m_res.tb.size() == m_unit.n_res;
       }
       return false;
     }
 
-    REP (i, pattern().charset.size()) {
-      cur()[pattern().mp[pos]] = pattern().charset[i];
-      if (go(pos + 1, gen))
-        return true;
+    int rpos = pattern().mp[pos];
+    if (pattern().per_char_vals.size() && pattern().per_char_vals[pos].size()) {
+      for (auto &c : pattern().per_char_vals[pos]) {
+        cur()[rpos] = c;
+        if (go(pos + 1, gen)) return true;
+      }
+
+    } else {
+
+      REP (i, pattern().charset.size()) {
+        cur()[rpos] = pattern().charset[i];
+        if (go(pos + 1, gen)) return true;
+      }
     }
     return false;
   }
@@ -66,8 +88,7 @@ public:
     for (auto &x : m_params.patterns) {
       pattern() = x;
       cur() = pattern().init;
-      if (go(0, true))
-        return;
+      if (go(0, true)) return;
     }
   }
 

@@ -23,10 +23,7 @@ T toBaseField1(const GF_q<T> *extensionField, const Poly<T> &u) {
   const Field<TYPE_BASE> *baseField = extensionField->getBaseField();
 
   OPA_CHECK0(u.size() <= 1);
-  if (u.size() == 0)
-    return baseField->getZ();
-  else
-    return u.get(0);
+  return u.get_safe(0);
 }
 
 template <class T>
@@ -35,7 +32,7 @@ Poly<T> toBaseField(const GF_q<T> *extensionField, const Poly<Poly<T> > &poly) {
   typedef Poly<T> TYPE_EXT;
 
   const Field<TYPE_BASE> *base_field = extensionField->getBaseField();
-  Poly<TYPE_BASE> res = base_field->get_poly_ring()->xpw(poly.deg());
+  Poly<TYPE_BASE> res = extensionField->pur_pr()->xpw(poly.deg());
   for (int i = 0; i < poly.size(); ++i)
     res.get(i) = toBaseField1(extensionField, poly.get(i));
   return res;
@@ -89,8 +86,7 @@ Poly<T> findMinimalPoly(const GF_q<T> *extensionField, const Poly<T> &wElem) {
   return toBaseField(extensionField, p);
 }
 
-template<typename T>
-Poly<T> gfx_char_poly(const Matrix<T> &mat) {
+template <typename T> Poly<T> gfx_char_poly(const Matrix<T> &mat) {
   // Poly ring is not valid anymore after return of function.
   OPA_CHECK0(mat.ring->isField());
   OPA_CHECK0(mat.n == mat.m);
@@ -112,7 +108,32 @@ Poly<T> gfx_char_poly(const Matrix<T> &mat) {
   return res;
 }
 
+template <typename T>
+std::vector<Poly<T> > pack_vector_gfq(const GF_q<T> *field,
+                                      const std::vector<T> &tb) {
+  std::vector<Poly<T> > res;
+  int n = field->getModPoly().deg();
+  OPA_CHECK0(tb.size() % n == 0);
+  for (int i = 0; i < tb.size(); i += n) {
+    std::vector<T> cur(n);
+    REP (j, n)
+      cur[j] = tb[i + j];
+    res.push_back(field->import_vec(cur));
+  }
+  return res;
+}
 
+template <typename T>
+std::vector<T> unpack_vector_gfq(const GF_q<T> *field,
+                                 const std::vector<Poly<T> > &tb) {
+  int n = field->getModPoly().deg();
+  std::vector<T> res;
+  for (auto &e : tb) {
+    REP (j, n)
+      res.push_back(e.get_safe(j));
+  }
+  return res;
+}
 OPA_NAMESPACE_DECL3_END
 
 #endif

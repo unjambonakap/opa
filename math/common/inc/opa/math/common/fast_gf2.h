@@ -324,7 +324,7 @@ inline Gf128_t2 to_gf128_t2(StringRef s) {
 inline Gf128_t to_gf128_t(StringRef s) { return to_gf128_t(to_gf128_t2(s)); }
 
 inline Gf128_t2 to_gf128_t2(const Gf128_t &a) {
-  return to_gf128_t2(gf128.to_base(a).getrbytes(16));
+  return to_gf128_t2(gf128.export_base(a).getrbytes(16));
 }
 
 const int maxb = 1 << 16;

@@ -39,7 +39,9 @@ struct Pattern : public opa::utils::ProtobufParams {
   std::string init;
   std::vector<int> mp;
   std::string charset;
-  OPA_TGEN_IMPL(init, mp, charset);
+  int shard_at=-1;
+  std::vector<std::vector<int>> per_char_vals;
+  OPA_TGEN_IMPL(init, mp, charset, shard_at, per_char_vals);
 };
 
 struct Res : public opa::utils::ProtobufParams {

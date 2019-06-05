@@ -1,8 +1,8 @@
 #pragma once
 
-#include <opa/math/common/base.h>
 #include <opa/math/common/Ring.h>
 #include <opa/math/common/Utils.h>
+#include <opa/math/common/base.h>
 
 OPA_NM_MATH_COMMON
 
@@ -37,18 +37,18 @@ public:
 
   virtual T getZ() const = 0;
   virtual T getE() const = 0;
-  virtual T getRandRaw() const { assert(0); return T();}
+  virtual T getRandRaw() const {
+    assert(0);
+    return T();
+  }
 
   // EOI
 
   virtual bool isInv(const T &a) const { return !isZ(a); }
   virtual bool ediv(const T &a, const T &b, T *q, T *r) const {
-    if (isZ(b))
-      return false;
-    if (q)
-      *q = mul(a, inv(b));
-    if (r)
-      *r = getZ();
+    if (isZ(b)) return false;
+    if (q) *q = mul(a, inv(b));
+    if (r) *r = getZ();
     return true;
   }
 
@@ -57,26 +57,16 @@ public:
   }
 
   virtual T getPrimitiveElem() const {
-    if (m_hasPrimElem)
-      return m_cachedPrimElem;
+    if (m_hasPrimElem) return m_cachedPrimElem;
 
     while (true) {
       T x = getRandRaw();
-      if (isZ(x))
-        continue;
 
-      for (auto u : m_factors) {
-        T nx = this->faste(x, this->getSize() / u.ST);
-        if (isE(nx))
-          goto fail;
+      if (is_prim_elem(x)) {
+        m_cachedPrimElem = x;
+        m_hasPrimElem = true;
+        return x;
       }
-
-      {
-        this->m_cachedPrimElem = x;
-        this->m_hasPrimElem = true;
-      }
-      return x;
-    fail:;
     }
   }
 
@@ -87,8 +77,7 @@ public:
 
   virtual T getRand() const {
     bignum x = this->getSize().rand();
-    if (x == 0)
-      return getZ();
+    if (x == 0) return getZ();
     return this->faste(getPrimitiveElem(), x - 1);
   }
 
@@ -98,8 +87,7 @@ public:
     bignum cur = this->getSize() - 1;
     for (auto f : m_factors) {
       REP (j, f.ND) {
-        if (!isE(this->faste(a, cur / f.ST)))
-          break;
+        if (!isE(this->faste(a, cur / f.ST))) break;
         cur /= f.ST;
       }
     }
@@ -117,17 +105,32 @@ public:
     return m_factors;
   }
 
-  void compute_order_factors() const{
-    if (m_factors.size())
-      return;
+  void compute_order_factors() const {
+    if (m_factors.size()) return;
     m_factors = factor_large(this->getSize() - 1);
   }
 
-private:
+  bool is_prim_elem(const T &x) const {
+    if (isZ(x)) return false;
+
+    for (auto u : m_factors) {
+      T nx = this->faste(x, this->getSize() / u.ST);
+      if (isE(nx)) return false;
+    }
+    return true;
+  }
+
+  void set_prim_elem(const T &x_) {
+    T x = this->import(x_);
+    OPA_CHECK0(is_prim_elem(x));
+    m_cachedPrimElem = x;
+    m_hasPrimElem = true;
+  }
+
+public:
   mutable BGFactors m_factors;
   mutable T m_cachedPrimElem;
   mutable bool m_hasPrimElem;
 };
-
 
 OPA_NM_MATH_COMMON_END

@@ -3,6 +3,8 @@
 #include "common/Field.h"
 #include "common/PolyRing.h"
 #include <opa/or/best_first_search.h>
+#include <opa/math/common/float.h>
+#include <opa/math/common/Types.h>
 
 using namespace std;
 const int n_small_prime_test = 40;
@@ -18,18 +20,21 @@ OPA_NAMESPACE_DECL3(opa, math, common)
 u32 *isc = nullptr;
 inline bool get_isc(u32 x) { return isc[x >> 5] >> (x & 0x1f) & 1; }
 inline void set_isc(u32 x) { isc[x >> 5] |= 1u << (x & 0x1f); }
-int bitcount_tb[1<<BITCOUNT_BLK];
+int bitcount_tb[1 << BITCOUNT_BLK];
 
 std::vector<u32> pl;
 
 void initMathCommon(int seed) {
   bitcount_tb[0] = 0;
-  FOR(i, 1, 1<<BITCOUNT_BLK) bitcount_tb[i] = bitcount_tb[i>>1] + (i&1);
+  FOR (i, 1, 1 << BITCOUNT_BLK)
+    bitcount_tb[i] = bitcount_tb[i >> 1] + (i & 1);
 
   isc = new u32[FLAGS_primedb_maxv / 32];
   if (seed == -1) seed = time(0);
   rng.seed(seed);
   rng64.seed(seed);
+  bignum_init(seed);
+  Float_init(seed);
 
   u32 ub = sqrt(FLAGS_primedb_maxv) + 10;
   pl.clear();
@@ -45,6 +50,8 @@ void initMathCommon(int seed) {
           for (u32 j = i * i; j < FLAGS_primedb_maxv; j += i) set_isc(j);
       }
   }
+
+  init_math_types();
 }
 
 void init_math() { initMathCommon(FLAGS_math_seed); }
@@ -178,6 +185,7 @@ u32 u32_faste(u32 a, u32 p) {
     if (p & 1) x = x * a;
   return x;
 }
+
 std::vector<u32> genRand(u32 n, u32 sz) {
 
   std::vector<u32> tb(sz);

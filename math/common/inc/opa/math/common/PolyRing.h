@@ -168,18 +168,19 @@ public:
 
   virtual int get_poly_pos() const { return 1 + m_ring->get_poly_pos(); }
 
-  OPA_BG to_base(const Poly<T> &p) const {
-    OPA_BG res = 0;
-    OPA_BG per_elem = m_ring->getSize();
-    REPV (i, p.size())
-      res = res * per_elem + p.poly[i];
-    return res;
-  }
 
   virtual Poly<T> importu32(u32 v) const  {
     return constant(m_ring->importu32(v));
   }
 
+  virtual bignum export_base(const Poly<T> &x) const {
+    OPA_BG res = 0;
+    REPV(i, x.size()){
+      res = res * m_ring->getSize() + m_ring->export_base(x.get(i));
+    }
+    return res;
+
+  }
   virtual Poly<T> import_base(OPA_BG num) const  {
     Poly<T> res = get_poly();
     OPA_BG per_elem = m_ring->getSize();
@@ -197,6 +198,13 @@ public:
       res.poly.push_back(m_ring->import(p.poly[i]));
     return normalize(res);
   }
+
+  virtual std::vector<Poly<T>> import_vecs(const std::vector<Poly<T>> &plist) const  {
+    std::vector<Poly<T>> res;
+    for (auto &p : plist) res.push_back(this->import(p));
+    return res;
+  }
+
 
   Poly<T> import_vec(const std::vector<T> &px, bool rev = !kPolyRev) const {
     return import(px, rev);
@@ -514,7 +522,7 @@ public:
         a_special = a * spe_root;
       }
 
-      Poly<T> b = rand(a_special.deg() - 1);
+      Poly<T> b = this->rand(a_special.deg() - 1);
 
       if (m_ring->getSize().get_bit(0)) {
         b = this->faste(b, pw, a);

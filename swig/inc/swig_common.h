@@ -23,6 +23,7 @@ struct swig_tsf_data {
   }
 
   void add_obj(PyObject *obj, bool created) { objs.emplace_back(obj, created); }
+  std::string* get_repr(PyObject *obj) { return get_str(PyObject_Repr(obj), true); }
 
   bool check(PyObject *obj) const {
     return obj != nullptr && (PyBytes_Check(obj) || PyUnicode_Check(obj));

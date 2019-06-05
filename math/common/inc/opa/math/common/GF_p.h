@@ -23,6 +23,9 @@ public:
     return importu32((a % getSizeU32()).getu32());
   }
   virtual u32 getRandRaw() const;
+  virtual bignum export_base(const u32 &x) const {
+    return bignum::fromu32(x);
+  }
 
   virtual u32 getZ() const;
   virtual u32 getE() const;

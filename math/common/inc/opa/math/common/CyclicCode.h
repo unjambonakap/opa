@@ -9,7 +9,7 @@ OPA_NAMESPACE_DECL3(opa, math, common)
 
 template <class T> class CyclicCode {
 private:
-  const Field<T> &field;
+  const Field<T> *field;
   int n, nk;
   Poly<T> g, h;
   PolyRing<T> pr;
@@ -19,7 +19,10 @@ public:
   int getN() const { return n; }
   int getNK() const { return nk; }
   int getK() const { return n - nk; }
-  CyclicCode(const Field<T> &f, const Poly<T> &g, int n);
+  
+  OPA_ACCESSOR_R(Poly<T>, g, get_g);
+  OPA_ACCESSOR_R(Poly<T>, h, get_h);
+  CyclicCode(const Field<T> *f, const Poly<T> &g, int n);
 
   std::vector<T> encode(const std::vector<T> &msg) const;
   std::vector<T> decode(const std::vector<T> &msg) const;
@@ -27,7 +30,7 @@ public:
   bool isCodeword(const std::vector<T> &msg) const;
 };
 template <class T>
-CyclicCode<T>::CyclicCode(const Field<T> &f, const Poly<T> &g, int n)
+CyclicCode<T>::CyclicCode(const Field<T> *f, const Poly<T> &g, int n)
     : field(f), pr(f) {
   this->g = g;
   this->n = n;
@@ -41,19 +44,20 @@ CyclicCode<T>::CyclicCode(const Field<T> &f, const Poly<T> &g, int n)
 
 template <class T>
 std::vector<T> CyclicCode<T>::encode(const std::vector<T> &msg) const {
+  OPA_CHECK0(msg.size() == nk);
   Poly<T> in = pr.import(msg);
   Poly<T> res = pr.mulmod(in, g, xn1);
 
   Poly<T> tmp = pr.mulmod(res, h, xn1);
 
   std::vector<T> ans = res.toVector();
-  ans.resize(n, field.getZ());
+  ans.resize(n, field->getZ());
   return ans;
 }
 
 template <class T>
 std::vector<T> CyclicCode<T>::decode(const std::vector<T> &msg) const {
-  Matrix<T> m(&field, n, nk);
+  Matrix<T> m(field, n, nk);
   std::vector<T> tb = g.toVector();
 
   for (int j = 0; j < nk; ++j)
@@ -69,6 +73,9 @@ bool CyclicCode<T>::isCodeword(const std::vector<T> &msg) const {
   return pr.isZ(res);
 }
 
+
+typedef CyclicCode<u32> CyclicCode_u32;
+typedef CyclicCode<Poly<u32>> CyclicCode_P_u32;
 OPA_NAMESPACE_DECL3_END
 
 #endif

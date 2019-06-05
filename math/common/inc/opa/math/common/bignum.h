@@ -12,15 +12,14 @@ OPA_NM_MATH_COMMON_END
 
 OPA_NM_MATH_COMMON
 struct MpzWrap;
-struct MpzRandState;
 class Float;
 template <class T> class Fraction;
 
+void bignum_init(int seed);
 class bignum {
 
 public:
   static bignum identity() { return bignum(1); }
-  static void static_init();
   static bignum froms32(s32 x);
   static bignum fromu64(u64 x);
   static bignum fromu32(u32 x);
@@ -170,10 +169,10 @@ public:
   OPA_DECL_COUT_OPERATOR(bignum)
 
 
+    bool bad = false;
 private:
   void init();
   MpzWrap *a;
-  static MpzRandState *randState;
 };
 template <> inline u32 bignum::auto_conv() const { return getu32(); }
 template <> inline s32 bignum::auto_conv() const { return gets32(); }

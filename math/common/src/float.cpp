@@ -27,23 +27,21 @@ Float *internal_pi;
 Float *internal_e;
 
 MpfrGState Float::g_params;
+static bool is_init = false;
 
-void Float_init() {
-  static bool is_init = false;
+void Float_init(int seed) {
   if (!is_init) {
     is_init = true;
     Float::g_params.rand_state = new MpfrRandState();
     Float::g_params.precision = FLAGS_opa_float_precision;
     OPA_TRACES("Initing float", Float::g_params.precision);
     gmp_randinit_default(Float::g_params.rand_state);
-    gmp_randseed_ui(Float::g_params.rand_state, 123);
+    gmp_randseed_ui(Float::g_params.rand_state, seed);
 
     internal_pi = new Float(Float(-1).acos());
     internal_e = new Float(Float(1).exp());
   }
 }
-OPA_REGISTER_INIT(Float_init, Float_init);
-
 const Float &Float::g_pi() { return *internal_pi; }
 const Float &Float::g_e() { return *internal_e; }
 
@@ -53,7 +51,7 @@ std::ostream &operator<<(std::ostream &os, const Float &f) {
 }
 
 void Float::init() {
-  Float_init();
+  OPA_CHECK0(is_init);
   m_state = new MpfrWrap;
   mpfr_init2(m_state, g_params.precision);
 }

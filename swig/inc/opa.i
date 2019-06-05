@@ -1,3 +1,6 @@
+%{
+#define SWIG_PYTHON_STRICT_BYTE_CHAR
+%}
 %include "stdint.i"
 %include "std_string.i"
 %include "std_array.i"
@@ -26,6 +29,7 @@ import_array();
 %}
 %apply (float* IN_ARRAY1, int DIM1) {(const float* data, int n)};
 %apply (double* IN_ARRAY1, int DIM1) {(const double* data, int n)};
+%apply (int* IN_ARRAY1, int DIM1) {(const int* data, int n)};
 
 %feature("director") opa::OpaCallback;
 
@@ -81,8 +85,10 @@ namespace std {
 %typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) opa::stolen::StringRef{$1 = 1; }
 
 
-
 %typemap(out) std::string {
+  $result=swig_helper::convert($1);
+}
+%typemap(out) std::vector<std::string> {
   $result=swig_helper::convert($1);
 }
 %typemap(out) std::pair<std::string, bool> {
