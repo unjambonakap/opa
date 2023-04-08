@@ -5,6 +5,6 @@
 
 OPA_NAMESPACE_DECL2(opa, utils)
 
-OPA_FORMAT_FUNC_STD(StringPrintf, StringPiece);
+OPA_FORMAT_FUNC_STD(StringPrintf, string_view);
 
 OPA_NAMESPACE_DECL2_END

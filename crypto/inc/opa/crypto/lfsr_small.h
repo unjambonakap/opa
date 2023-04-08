@@ -28,7 +28,6 @@ public:
     OPA_CHECK0(n < 64);
     u64 poly = poly = poly_to_state(lfsr.get_poly());
     u64 state = poly_to_state(lfsr.get_state());
-    ;
     return LFSR_GF2_small(poly, n, state);
   }
 
@@ -47,7 +46,7 @@ public:
   void set_state(u64 state) { this->state = state & ((1ull << this->n) - 1); }
 
   u32 get_next() {
-    u64 r = state >> (n - 1) & 1;
+    s64 r = state >> (n - 1) & 1;
     state <<= 1;
     state ^= (-r) & poly;
     return r;
@@ -55,11 +54,12 @@ public:
 
   u32 get_next_non_galois() {
     u64 r = state >> (n - 1) & 1;
-    u32 nb = 1;
+    state <<= 1;
+    u32 nb = 0;
     u32 masked = state & poly;
-    REP(i,n) nb ^= (masked >> i) & 1;
-    state  = (state << 1 | nb) & mask;
-    return r;
+    FOR(i,1, n+1) nb ^= (masked >> i) & 1;
+    state  = (state | nb) & mask;
+    return nb;
   }
   int size() const { return n; }
 

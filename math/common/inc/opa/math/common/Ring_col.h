@@ -5,7 +5,6 @@
 #include <opa/math/common/Ring.h>
 #include <opa/math/common/UtilsPoly.h>
 #include <opa/math/common/base.h>
-#include <opa/math/common/base.h>
 
 OPA_NM_MATH_COMMON
 

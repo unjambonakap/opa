@@ -81,7 +81,7 @@
 
 
 
-%typemap(typecheck) glib::StringPiece {}
+%typemap(typecheck) std::string_view {}
 
 %typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) glm::vec3 {$1 = SwigSeqLoader().can_convert<$1_ltype>($input); }
 %typemap(typecheck, precedence=SWIG_TYPECHECK_CHAR_PTR) opa::Pos&, const opa::Pos&, glm::vec3&, const glm::vec3& {$1 = SwigSeqLoader().can_convert<$*1_ltype>($input);}
@@ -145,6 +145,8 @@ MAT_DEF(float, glm::mat4, 4);
 
 
 %typemap(typecheck) opa::PointVec {$1 = SwigSeqLoader().can_convert<$1_ltype>($input);}
+%typemap(typecheck) opa::Point2Vec {$1 = SwigSeqLoader().can_convert<$1_ltype>($input);}
+
 %typemap(typecheck) std::vector<opa::Pos>&, const std::vector<opa::Pos>&, opa::PointVec&, const opa::PointVec& {$1 = SwigSeqLoader().can_convert<$*1_ltype>($input);}
 %typemap(out) std::vector<opa::Pos2> (SwigVectorHelper helper), opa::Point2Vec (SwigVectorHelper helper){
   REP(i, $1.size()){
@@ -152,6 +154,7 @@ MAT_DEF(float, glm::mat4, 4);
   }
   $result = helper.obj;
 }
+
 %typemap(out) std::vector<opa::Pos4> (SwigVectorHelper helper) {
   REP(i, $1.size()){
     helper.add(SwigVectorHelper().add((*(&$1))[i]).obj);
@@ -160,6 +163,13 @@ MAT_DEF(float, glm::mat4, 4);
 }
 
 %typemap(out) std::vector<opa::Pos> (SwigVectorHelper helper) {
+  REP(i, $1.size()){
+    helper.add(SwigVectorHelper().add((*(&$1))[i]).obj);
+  }
+  $result = helper.obj;
+}
+
+%typemap(out) std::vector<opa::Pos2> (SwigVectorHelper helper) {
   REP(i, $1.size()){
     helper.add(SwigVectorHelper().add((*(&$1))[i]).obj);
   }
@@ -175,8 +185,16 @@ MAT_DEF(float, glm::mat4, 4);
   $1 = &tmp;
 }
 
-%typemap(freearg) const opa::PointVec&, const std::vector<opa::Pos>&  {
+%typemap(in) const opa::Point2Vec& (SwigSeqLoader loader, std::vector<opa::Pos2> tmp), const std::vector<opa::Pos2>& (SwigSeqLoader loader, std::vector<opa::Pos2> tmp) {
+  tmp = loader.load<opa::Pos2>($input);
+  if (!loader.ok) {
+    SWIG_fail;
+  }
+  $1 = &tmp;
 }
+
+%typemap(freearg) const opa::PointVec&, const std::vector<opa::Pos>&  { }
+%typemap(freearg) const opa::Point2Vec&, const std::vector<opa::Pos2>&  { }
 
 %typemap(in) const opa::Tr2D& (SwigSeqLoader loader, opa::Tr2D tmp) {
   tmp = loader.load_obj<opa::Tr2D>($input);
@@ -198,12 +216,12 @@ MAT_DEF(float, glm::mat4, 4);
 }
 
 
-//namespace std {
-//  %template(vec_pos) std::vector<opa::Pos>;
-//  %template(vec_vec_pos) std::vector<std::vector<glm::vec3>>;
-//  %template(vec_pos2) std::vector<opa::Pos2>;
-//  %template(vec_pos4) std::vector<opa::Pos4>;
-//  %template(tr2d) std::array<opa::Pos2, 3>;
-//}
+namespace std {
+  %template(vec_pos) std::vector<opa::Pos>;
+  %template(vec_vec_pos) std::vector<std::vector<glm::vec3>>;
+  %template(vec_pos2) std::vector<opa::Pos2>;
+  %template(vec_pos4) std::vector<opa::Pos4>;
+  %template(tr2d) std::array<opa::Pos2, 3>;
+}
 
 %include "opa/math/game/quat.h"

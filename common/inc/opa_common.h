@@ -8,13 +8,13 @@
 #endif
 
 #include <gflags/gflags.h>
-#include <glib/core/stringpiece.h>
-#include <glib/gtl/map_util.h>
+#include <absl/strings/string_view.h>
+//#include <glib/gtl/map_util.h>
 #include <glog/logging.h>
 #include <opa/stolen/StringRef.h>
 
 namespace opa {
-using glib::StringPiece;
+using absl::string_view;
 }
 
 OPA_NM_INIT

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from chdrft.waf.opa import WafBuilder
+import subprocess as sp
 
 x = WafBuilder(globals())
 

@@ -1,8 +1,7 @@
 
 #pragma once
 
-#include <glib/gtl/map_util.h>
-#include <glib/hash/hash.h>
+#include <absl/hash/hash.h>
 #include <opa/stolen/StringRef.h>
 #include <opa/utils/serialize.h>
 #include <opa/utils/string.h>
@@ -10,17 +9,14 @@
 namespace std {
 template <class A, class B> struct hash<std::pair<A, B> > {
   size_t operator()(const std::pair<A, B> &v) const {
-    size_t curhash = 0;
-    curhash = glib::Hash64Combine(curhash, std::hash<A>()(v.first));
-    curhash = glib::Hash64Combine(curhash, std::hash<B>()(v.second));
-    return curhash;
+    return absl::HashOf(v.first, v.second);
   }
 };
 template <class T> struct hash<std::vector<T> > {
   size_t operator()(const std::vector<T> &v) const {
     size_t curhash = 0;
     for (auto &x : v) {
-      curhash = glib::Hash64Combine(curhash, std::hash<T>()(x));
+      curhash = absl::HashOf(curhash, std::hash<T>()(x));
     }
     return curhash;
   }
@@ -29,7 +25,7 @@ template <class T, int N> struct hash<std::array<T, N> > {
   size_t operator()(const std::array<T, N> &v) const {
     size_t curhash = 0;
     for (auto &x : v) {
-      curhash = glib::Hash64Combine(curhash, std::hash<T>()(x));
+      curhash = absl::HashOf(curhash, std::hash<T>()(x));
     }
     return curhash;
   }
@@ -45,7 +41,7 @@ struct _hash_helper {
     size_t prev = _hash_helper<Tuple, Index - 1>::hash(tuple);
     using TypeForIndex = typename std::tuple_element<Index, Tuple>::type;
     size_t thisHash = std::hash<TypeForIndex>()(std::get<Index>(tuple));
-    return glib::Hash64Combine(prev, thisHash);
+    return absl::HashOf(prev, thisHash);
   }
 };
 

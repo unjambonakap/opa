@@ -12,8 +12,8 @@ class Worker : public Threadable {
   public:
     virtual void run();
     Worker(ClientDispatcher &dispatcher);
-    void do_init(JobMsg *init);
-    JobMsgPtr do_next(JobMsg *data);
+    void do_init(opa::threading::JobMsg *init);
+    JobMsgPtr do_next(opa::threading::JobMsg *data);
 
   private:
     ClientDispatcher &m_dispatcher;

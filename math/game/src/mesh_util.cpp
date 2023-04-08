@@ -307,7 +307,7 @@ void MeshBuilder::repair_orientation() {
 
 bool MeshBuilder::is_manifold_mesh() {
   auto graph = get_graph();
-  for (const auto &edge : graph->graph.edges) {
+  for (const auto &edge : graph->graph.list_edges()) {
     if (graph->graph.get_edge_count(edge.from, edge.to) != 1) return false;
   }
   return true;
@@ -408,6 +408,7 @@ FaceCollection &FaceCollection::load_stl_from_data(glib::StringPiece data) {
   utils::BufferReader reader(data);
   reader.get(80);
   u32 ntr = reader.read_u32();
+  OPA_CHECK(!data.starts_with("solid"), "Only binary stl are supported");
 
   MeshBuilder res;
   REP (i, ntr) {

@@ -15,7 +15,7 @@ std::string get_poly_letter(int id);
 template <class T> class Poly {
 public:
   // It cannot be PolyRing<T, *> because of second template argument
-  typedef Ring<Poly<T>> RingType;
+  typedef Ring<Poly<T> > RingType;
 
 private:
   friend class PolyRing<T>;
@@ -38,10 +38,10 @@ public:
   Poly() { m_ring = 0; }
   Poly(const RingType *ring) { init(ring); }
 
-  //Poly(u32 a) {
-  //  OPA_ASSERT0(a == 0 || a == 1);
-  //  if (a == 1) poly.pb(1);
-  //}
+  // Poly(u32 a) {
+  //   OPA_ASSERT0(a == 0 || a == 1);
+  //   if (a == 1) poly.pb(1);
+  // }
   Poly(const RingType *ring, u32 a) {
     init(ring);
     OPA_ASSERT0(a == 0 || a == 1);
@@ -87,6 +87,9 @@ public:
     OPA_ASSERT0(a >= 0 && a < poly.size());
     return poly[a];
   }
+
+  void set(int a, const T &v) { this->get_poly_ring()->set1(*this, a, v); }
+
   const T &operator[](int a) const { return get(a); }
   T &operator[](int a) { return get(a); }
 
@@ -95,9 +98,7 @@ public:
     return poly[a];
   }
 
-  void normalize() {
-    get_poly_ring()->normalize(*this);
-  }
+  void normalize() { get_poly_ring()->normalize(*this); }
 
   // forcing the user to normalize
   T &get_force(int a) {
@@ -112,19 +113,15 @@ public:
 
   const std::vector<T> &toVector() const { return poly; }
   const std::vector<T> &to_vec() const { return poly; }
-  std::vector<T> to_vec(int sz) const {
-    return get_poly_ring()->toVector(*this, sz);
-  }
+  std::vector<T> to_vec(int sz) const { return get_poly_ring()->toVector(*this, sz); }
   std::vector<T> &vec_unsafe() { return poly; }
 
-  std::vector<T> toVector(int sz) const {
-    return get_poly_ring()->toVector(*this, sz);
-  }
+  std::vector<T> toVector(int sz) const { return get_poly_ring()->toVector(*this, sz); }
 
   void disp() const { std::cout << *this << std::endl; }
   void mulx(const T &v) {
     T pw = get_underlying_ring()->getE();
-    for (auto &x : poly){
+    for (auto &x : poly) {
       x = get_underlying_ring()->mul(x, pw);
       pw = get_underlying_ring()->mul(pw, v);
     }
@@ -137,7 +134,7 @@ public:
     return poly < x.poly;
   }
 
-  OPA_DECL_STR_FROM_COUT();                                             \
+  OPA_DECL_STR_FROM_COUT();
   friend std::ostream &operator<<(std::ostream &os, const Poly<T> &a) {
     if (!a.m_ring) {
       os << "0";
@@ -159,6 +156,7 @@ public:
     return os;
   }
 
+  Poly<T> resize(int n) const;
   Poly<T> operator+(const Poly<T> &b) const;
   Poly<T> operator-(const Poly<T> &b) const;
   Poly<T> operator*(const Poly<T> &b) const;
@@ -170,9 +168,10 @@ public:
   Poly<T> operator*(const T &b) const;
   Poly<T> operator/(const T &b) const;
   Poly<T> monic() const;
+  Poly<T> rev(int target_size = -1) const;
   Poly<T> powm(const bignum &v) const;
   Poly<T> extract_pw(const std::vector<int> &lst) const;
-  Poly<T> derivative() const;
+  Poly<T> derivate() const;
   T linear_root() const;
 
   T cont() const;
@@ -180,9 +179,7 @@ public:
   void pp_and_cont(Poly<T> *pp, T *cont) const;
 };
 
-template <class T> Poly<T> get_unity(const Poly<T> &a) {
-  return a.get_ring()->getE();
-}
+template <class T> Poly<T> get_unity(const Poly<T> &a) { return a.get_ring()->getE(); }
 
 OPA_NM_MATH_COMMON_END
 
@@ -191,6 +188,10 @@ OPA_NM_MATH_COMMON_END
 OPA_NM_MATH_COMMON
 
 template <class T> void Poly<T>::init(const RingType *ring) { m_ring = ring; }
+
+template <class T> Poly<T> Poly<T>::resize(int n) const {
+  return this->get_poly_ring()->resize(*this, n);
+}
 
 template <class T> Poly<T> Poly<T>::operator+(const Poly<T> &b) const {
   return m_ring->add(*this, b);
@@ -212,9 +213,7 @@ template <class T> Poly<T> Poly<T>::operator%(const Poly<T> &b) const {
   return m_ring->mod(*this, b);
 }
 
-template <class T> Poly<T> Poly<T>::operator-() const {
-  return m_ring->neg(*this);
-}
+template <class T> Poly<T> Poly<T>::operator-() const { return m_ring->neg(*this); }
 
 template <class T> Poly<T> Poly<T>::operator+(const T &b) const {
   return get_poly_ring()->addc(*this, b);
@@ -231,32 +230,27 @@ template <class T> Poly<T> Poly<T>::operator/(const T &b) const {
   return get_poly_ring()->divc(*this, b);
 }
 
-template <class T> Poly<T> Poly<T>::powm(const bignum &v) const {
-  return m_ring->faste(*this, v);
-}
+template <class T> Poly<T> Poly<T>::powm(const bignum &v) const { return m_ring->faste(*this, v); }
 template <class T> T Poly<T>::operator()(const T &a) const {
   return get_poly_ring()->eval(*this, a);
 }
 
-template <class T> Poly<T> Poly<T>::monic() const {
-  return get_poly_ring()->monic(*this);
+template <class T> Poly<T> Poly<T>::monic() const { return get_poly_ring()->monic(*this); }
+
+template <class T> Poly<T> Poly<T>::rev(int target_size) const {
+  return get_poly_ring()->rev(*this, target_size);
 }
 
-template <class T> Poly<T> Poly<T>::derivative() const {
-  return get_poly_ring()->derivative(*this);
-}
+template <class T> Poly<T> Poly<T>::derivate() const { return get_poly_ring()->derivate(*this); }
 
-template <class T> T Poly<T>::linear_root() const {
-  return get_poly_ring()->linear_root(*this);
-}
+template <class T> T Poly<T>::linear_root() const { return get_poly_ring()->linear_root(*this); }
 
 template <class T> void Poly<T>::copy_poly(const Poly<T> &a) {
   this->poly = a.poly;
   this->m_ring = a.m_ring;
 }
 
-template <class T>
-Poly<T> Poly<T>::extract_pw(const std::vector<int> &lst) const {
+template <class T> Poly<T> Poly<T>::extract_pw(const std::vector<int> &lst) const {
   Poly<T> res = m_ring->getZ();
   for (auto &x : lst) {
     res = res + get_poly_ring()->xpwv(x, get_safe(x));
@@ -276,8 +270,7 @@ template <class T> Poly<T> Poly<T>::pp() const {
   return res;
 }
 
-template <class T>
-void Poly<T>::pp_and_cont(Poly<T> *res_pp, T *res_cont) const {
+template <class T> void Poly<T>::pp_and_cont(Poly<T> *res_pp, T *res_cont) const {
   auto base_ring = this->get_underlying_ring();
   T cont = gcd_list(*base_ring, *this);
   if (res_cont != nullptr) *res_cont = cont;
@@ -287,3 +280,15 @@ void Poly<T>::pp_and_cont(Poly<T> *res_pp, T *res_cont) const {
 }
 
 OPA_NM_MATH_COMMON_END
+
+namespace std {
+
+template <class T> struct hash<opa::math::common::Poly<T> > {
+  typedef opa::math::common::Poly<T> argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &s) const {
+    return std::hash<std::vector<T> >{}(s.to_vec());
+  }
+};
+} // namespace std

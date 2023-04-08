@@ -13,12 +13,12 @@ def do_configure(_x):
 
 x.register_libs(x.packages.Gflags, x.packages.Glog)
 x.add_configure(do_configure)
-x.auto_lib(extra_qual='commonbase_hdr', base_dir='./common_base_hdr', include_root=True).update(register_name=x.libs.CommonBaseHdr_N, features='cxxshlib', use_global=False)
-x.auto_lib(extra_qual='commonbase', base_dir='./common_base').update(register_name=x.libs.CommonBase_N, features='cxxshlib', use_global=False, libs=[x.libs.CommonBaseHdr_N])
-x.auto_lib(extra_qual='commonbase_static', base_dir='./common_base').update(register_name=x.libs.CommonBaseStatic_N, features='cxxstlib', use_global=False, libs=[x.libs.CommonBaseHdr_N])
+x.auto_lib(extra_qual='commonbase_hdr', base_dir='./common_base_hdr', include_root=True).update(register_name=x.libs.CommonBaseHdr_N, features='cxx cxxshlib', use_global=False)
+x.auto_lib(extra_qual='commonbase', base_dir='./common_base').update(register_name=x.libs.CommonBase_N, features='cxx cxxshlib', use_global=False, libs=[x.libs.CommonBaseHdr_N])
+x.auto_lib(extra_qual='commonbase_static', base_dir='./common_base').update(register_name=x.libs.CommonBaseStatic_N, features='cxx cxxstlib', use_global=False, libs=[x.libs.CommonBaseHdr_N])
 x.auto()
-x.get(x.typ.LIB, pos=3).update(register_name=x.libs.Common_N, features='cxxshlib', libs=[x.packages.Protoc, x.libs.GoogleCommon_N, x.packages.YamlCPP, x.libs.CommonBase_N])
+x.get(x.typ.LIB, pos=3).update(register_name=x.libs.Common_N, features='cxx cxxshlib', libs=[x.packages.Protoc, x.packages.Absl, x.packages.YamlCPP, x.libs.CommonBase_N])
 x.get(x.typ.SWIG_H).update(register_name=x.libs.SwigCommon2H_N)
-x.get(x.typ.SWIG).update(register_name=x.libs.SwigCommon2_N, install=True, libs=[x.packages.Protoc, x.libs.GoogleCommon_N, x.packages.YamlCPP])
+x.get(x.typ.SWIG).update(register_name=x.libs.SwigCommon2_N, install=True, libs=[x.packages.Protoc])
 
 x.setup()

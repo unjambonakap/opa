@@ -27,10 +27,11 @@ TEST(Graph, Test1) {
   OPA_TRACES(res);
 }
 
-TEST(Graph, CC) {
+TEST(CC, Test1) {
   FastGraph graph(7, Mode::DIGRAPH);
 
   graph.adde(0, 1);
+  graph.adde(1, 2);
   graph.adde(2, 3);
   graph.adde(3, 4);
   graph.adde(4, 5);
@@ -140,6 +141,100 @@ TEST(TreeAutomorphism, Test2){
   OPA_DISP0(get_tree_center(tree));
   OPA_DISP0(get_tree_automorphism_partitions(tree));
 }
+
+TEST(DigraphCompress, Test1){
+  FastGraph graph(10, Mode::DIGRAPH);
+  graph.adde(0,1);
+  graph.adde(1,2);
+  graph.adde(2,3);
+  graph.adde(3,4);
+  graph.adde(4,5);
+  graph.adde(4,6);
+  graph.adde(1,7);
+  std::unordered_set<int> keep = {0,5,6,7, 3};
+  auto ng = compress_digraph(graph, keep);
+  OPA_DISP0(ng->str());
+}
+
+TEST(TopologicalOrdering, Test1){
+  FastGraph graph(10, Mode::DIGRAPH);
+  graph.adde(0,1);
+  graph.adde(1,2);
+  graph.adde(2,3);
+  graph.adde(3,4);
+  graph.adde(4,5);
+  graph.adde(4,6);
+  graph.adde(1,7);
+  OPA_DISP0(graph.get_successors(4));
+  OPA_DISP0(graph.get_predecessors(4));
+  auto tp = topological_ordering(graph);
+  OPA_DISP0(tp);
+}
+
+TEST(ContractEdge, Test1){
+  FastGraph graph(10, Mode::DIGRAPH);
+  graph.adde(0,1);
+  graph.adde(1,2);
+  graph.adde(2,3);
+  graph.adde(3,4);
+  graph.adde(4,5);
+  graph.adde(4,6);
+  graph.adde(1,7);
+
+  contract_edge(graph, 0, 1);
+
+  contract_edge(graph, 3, 4);
+  OPA_DISP0(graph.str());
+}
+
+
+TEST(CompressPaths, Test1){
+  FastGraph graph(10, Mode::DIGRAPH);
+  graph.adde(0,1);
+  graph.adde(1,2);
+  graph.adde(2,3);
+  graph.adde(3,4);
+  graph.adde(4,5);
+  graph.adde(4,6);
+  graph.adde(1,7);
+  graph.adde(5,6);
+
+  OPA_DISP0(graph.str());
+  compress_paths(graph, {1});
+  OPA_DISP0(graph.str());
+}
+
+TEST(CompressPaths, Test2){
+  FastGraph graph(4, Mode::DIGRAPH);
+  graph.adde(0,1);
+  graph.adde(0,2);
+  graph.adde(1,3);
+  graph.adde(2,3);
+
+  OPA_DISP0(graph.str());
+  compress_paths(graph, {1});
+  OPA_DISP0(graph.str());
+}
+
+TEST(Subgraph, Test1){
+  FastGraph graph(10, Mode::DIGRAPH);
+  graph.adde(0,1);
+  graph.adde(1,2);
+  graph.adde(2,3);
+  graph.adde(3,4);
+  graph.adde(4,5);
+  graph.adde(4,6);
+  graph.adde(1,7);
+  graph.adde(5,6);
+
+  OPA_DISP0(graph.str());
+  auto sg = graph.subgraph({1,2,3,6}, true, true);
+  OPA_DISP0(sg->str());
+  auto sg2 = sg->subgraph({1,3}, true, true);
+  OPA_DISP0(sg2->str());
+}
+
+
 
 GTEST_API_ int main(int argc, char **argv) {
   printf("Running main() from gtest_main.cc\n");

@@ -16,6 +16,7 @@ typedef std::array<u64, 2> Gf128_t2;
 typedef opa::math::common::Poly<u32> Gf128_t;
 extern opa::math::common::GF_q<u32> gf128;
 extern Gf128_t gcm_poly;
+void init_fast();
 
 template <bool Left> class MulMatrixF2 {
 public:

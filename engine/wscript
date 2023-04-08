@@ -4,7 +4,7 @@ from chdrft.waf.opa import WafBuilder
 
 x = WafBuilder(globals())
 x.register_libs(x.libs.lodepng_N, x.packages.GLFW, x.packages.Glm, x.packages.GLU, x.packages.EGL, x.packages.GL,
-                x.packages.GDAL, x.packages.Glew, x.packages.PocoFoundation,
+                x.packages.GDAL, x.packages.Glew, x.packages.Absl,
                 x.libs.MathGame_N, x.libs.MathCommon_N, x.libs.Threading_N,
                 x.libs.Common_N, x.packages.Gflags)
 

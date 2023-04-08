@@ -68,7 +68,7 @@ struct NfsParams {
   NfsParams() {}
   NfsParams(const OPA_MATH::Poly<bignum> &f, const bignum &n, const bignum &m)
       : f(f), n(n), m(m) {
-    f_deriv = f.get_poly_ring()->derivative(f);
+    f_deriv = f.get_poly_ring()->derivate(f);
   }
 
   OPA_MATH::Poly<bignum> f;

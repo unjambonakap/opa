@@ -99,7 +99,7 @@ public:
     });
   }
 
-  virtual void server_set_work_result(const JobMsg &res) {
+  virtual void server_set_work_result(const opa::threading::JobMsg &res) {
     TRes res_msg;
     res.any().UnpackTo(&res_msg);
     tserver_set_work_result(res, res_msg, res.data_id());

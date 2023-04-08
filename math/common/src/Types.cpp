@@ -2,7 +2,7 @@
 #include <opa/math/common/float.h>
 
 OPA_NAMESPACE(opa, math, common)
-GF_p GF2;
+GF_p GF2{2};
 ZRing Ring_Z;
 PolyRing<u32> PR_GF2;
 PolyRing<bignum> PR_Z;
@@ -25,7 +25,6 @@ PolyRing<P_QQf> Qf_xyz;
 void init_math_types() {
   static bool is_init = false;
   if (!is_init) {
-    GF2.init(2);
     PR_GF2.init(&GF2);
     QF.init(&Ring_Z, true /* do_reduce */);
     is_init = true;
@@ -51,9 +50,9 @@ void init_math_types() {
 }
 const GF_p &get_gfp(u32 p) {
   if (!g_gfps.count(p)) {
-    g_gfps[p].init(p);
+    g_gfps.emplace(p, p);
   }
-  return g_gfps[p];
+  return g_gfps.find(p)->second;
 }
 
 OPA_NAMESPACE_END(opa, math, common)

@@ -9,8 +9,9 @@
 #include <opa/utils/string.h>
 
 OPA_NAMESPACE_DECL2(opa, algo)
-#define OPA_FOREACH_EDGE(e, v)                                                 \
-  for (int e = last[(v)]; e != -1; e = edges[e].prev)
+#define OPA_FOREACH_EDGE(e, v) for (int e = last[(v)]; e != -1; e = edges[e].prev)
+
+#define OPA_FOREACH_REDGE(e, v) for (int e = rlast[(v)]; e != -1; e = edges[e].prev)
 
 std::vector<int> GraphDistData::compute_path(int a, int b) const {
   std::vector<int> res;
@@ -40,20 +41,44 @@ SPTR(FastGraph) FastGraph::make_bidirectional() const {
   SPTR(FastGraph) res(new FastGraph(n, Mode::REMAP));
   REP (i, n) {
     OPA_FOREACH_EDGE(e, i) {
-      res->add_bidirectional(inormv(i), inormv(edges[e].to));
+      if (i != edges[e].to) {
+
+        res->add_bidirectional(inormv(i), inormv(edges[e].to));
+        OPA_DISP0(inormv(i), inormv(edges[e].to), res->edges.size());
+      }
     }
   }
   return res;
 }
-SPTR(FastGraph) FastGraph::clone() const {
-  return std::make_shared<FastGraph>(*this);
+
+SPTR(FastGraph) FastGraph::clone() const { return std::make_shared<FastGraph>(*this); }
+
+SPTR(FastGraph)
+FastGraph::subgraph(const std::vector<int> &nodes, bool norm, bool neighborhood) const {
+  SPTR(FastGraph) res(new FastGraph(0, mode.raw | Mode::REMAP | Mode::DYNAMIC_SIZE));
+  std::unordered_set<int> nodes_set(ALL(nodes));
+
+  for (auto &node : nodes) {
+    res->add_node(node);
+    for (auto &nxt : get_successors(node, norm)) {
+      if (neighborhood || nodes_set.count(nxt)) res->adde(node, nxt);
+    }
+
+    if (neighborhood) {
+      for (auto &prev : get_predecessors(node, norm)) res->adde(prev, node);
+    }
+  }
+
+  attr_map.extract(res->list_nodes(), &res->attr_map);
+
+  return res;
 }
 
 std::vector<SPTR(FastGraph)> FastGraph::split_cc() const {
   auto cc_list = list_connected_components();
   std::vector<SPTR(FastGraph)> res(cc_list.size());
   REP (i, cc_list.size()) {
-    res[i] = std::make_shared<FastGraph>(cc_list[i].size(), true);
+    res[i] = std::make_shared<FastGraph>(cc_list[i].size(), Mode::REMAP);
     for (auto &v : cc_list[i]) {
       int v2 = normv(v);
       OPA_FOREACH_EDGE(e, v2) {
@@ -127,8 +152,7 @@ void FastGraph::eulerian_rec_robust(int pos, EulerianRecStateRobust &state) {
       npath.push_back(inormv(pos));
       OPA_CHECK(state.order.size() > a.ND, a, state.order);
       state.order.resize(a.ND);
-      while (state.order.size() > b.ND)
-        npath.push_back(state.order.back()), state.order.pop_back();
+      while (state.order.size() > b.ND) npath.push_back(state.order.back()), state.order.pop_back();
 
       state.paths.emplace_back(std::move(npath));
     }
@@ -137,8 +161,7 @@ void FastGraph::eulerian_rec_robust(int pos, EulerianRecStateRobust &state) {
     if (eid == -1) {
 
       stack.pop_back();
-      if (state.stack_and_order.size() == 0 ||
-          state.stack_and_order.back().first <= stack.size()) {
+      if (state.stack_and_order.size() == 0 || state.stack_and_order.back().first <= stack.size()) {
         state.stack_and_order.emplace_back(stack.size(), state.order.size());
       } else {
         state.stack_and_order.back().ST = stack.size();
@@ -217,11 +240,13 @@ std::vector<std::vector<int> > FastGraph::get_path_cover() {
   return res;
 }
 
-std::vector<int> FastGraph::get_cover_walk_dumb() {
+std::vector<int> FastGraph::get_cover_walk_dumb(bool need_dup) {
   int ne = edges.size();
-  // duplicate all edges, all vertices are now odd.
-  REP (i, ne)
-    adde(edges[i].from, edges[i].to, false);
+  // duplicate all edges, all vertices are now even.
+  if (need_dup) {
+    REP (i, ne)
+      adde(edges[i].from, edges[i].to, false);
+  }
   return get_eulerian_cycle();
 }
 
@@ -252,8 +277,7 @@ std::vector<int> FastGraph::get_cover_walk() {
       edge_map.set(graph.addEdge(graph.nodeFromId(i), graph.nodeFromId(j)), c);
     }
 
-  lemon::MaxWeightedPerfectMatching<lemon::SmartGraph> max_weight_matching(
-    graph, edge_map);
+  lemon::MaxWeightedPerfectMatching<lemon::SmartGraph> max_weight_matching(graph, edge_map);
   max_weight_matching.run();
   std::vector<std::tuple<int, int, int> > data; // cost, i, j
   REP (i, odd_remap.size()) {
@@ -286,8 +310,7 @@ std::vector<int> FastGraph::get_cover_walk() {
   REP (i, work_graph.n)
     OPA_DISP0(work_graph.deg(i, false) & 1);
 
-  std::vector<int> res =
-    work_graph.get_eulerian_path(std::get<1>(data[maxe]), false);
+  std::vector<int> res = work_graph.get_eulerian_path(std::get<1>(data[maxe]), false);
   OPA_DISP0(res.size(), this->n_edges());
   OPA_DISP0(res);
   std::set<std::pair<int, int> > lst;
@@ -301,13 +324,11 @@ std::vector<int> FastGraph::get_cover_walk() {
   }
   return res;
 }
+
 bool FastGraph::hase(int a, int b, bool norm) const {
   a = normv(a, norm);
   b = normv(b, norm);
-  OPA_FOREACH_EDGE(e, a) {
-    if (edges[e].to == b) return true;
-  }
-  return false;
+  return edge_map.count(MP(a, b)) > 0;
 }
 
 bool FastGraph::is_connected() const {
@@ -351,11 +372,71 @@ std::vector<EdgeData> FastGraph::get_edges(int a, bool norm) const {
   return res;
 }
 
+std::vector<EdgeData> FastGraph::get_redges(int a, bool norm) const {
+  a = normv(a, norm);
+  std::vector<EdgeData> res;
+  OPA_FOREACH_REDGE(e, a) { res.push_back(edges[e]); }
+  return res;
+}
+
+std::vector<EdgeData> FastGraph::get_all_edges(int a, bool norm) const {
+  a = normv(a, norm);
+  std::vector<EdgeData> res = get_edges(a, norm);
+  auto redges = get_redges(a, norm);
+  res.insert(res.end(), ALL(redges));
+  return res;
+}
+
 std::vector<EdgeData> FastGraph::get_edges2(int a, int b, bool norm) const {
   a = normv(a, norm);
   b = normv(b, norm);
   std::vector<EdgeData> res;
   OPA_FOREACH_EDGE(e, a) if (edges[e].to == b) { res.push_back(edges[e]); }
+  return res;
+}
+
+std::vector<int> FastGraph::get_neighbours(int a, bool norm) const {
+  auto tb = get_successors(a, norm);
+  auto pred = get_predecessors(a, norm);
+  tb.insert(tb.end(), ALL(pred));
+  return tb;
+}
+
+void FastGraph::remove_edge_internal(int edge_id) {
+  auto &edge_data = edges[edge_id];
+
+  if (edge_data.forward) {
+    --edge_count;
+    --vertices[edge_data.from].deg_out;
+    --vertices[edge_data.to].deg_in;
+    edge_map.erase(MP(edge_data.from, edge_data.to));
+
+  } else {
+    redge_map.erase(MP(edge_data.from, edge_data.to));
+  }
+
+  edge_data.removed = true;
+
+  auto &lastp = edge_data.forward ? last : rlast;
+  if (edge_data.next == -1) {
+    lastp[edge_data.from] = edge_data.prev;
+  } else {
+    edges[edge_data.next].prev = edge_data.prev;
+  }
+  if (edge_data.prev != -1) edges[edge_data.prev].next = edge_data.next;
+}
+
+std::vector<int> FastGraph::get_successors(int a, bool norm) const {
+  a = normv(a, norm);
+  std::vector<int> res;
+  OPA_FOREACH_EDGE(e, a) { res.push_back(inormv(edges[e].to, norm)); }
+  return res;
+}
+
+std::vector<int> FastGraph::get_predecessors(int a, bool norm) const {
+  a = normv(a, norm);
+  std::vector<int> res;
+  OPA_FOREACH_REDGE(e, a) { res.push_back(inormv(edges[e].to, norm)); }
   return res;
 }
 
@@ -392,6 +473,52 @@ void FastGraph::dijkstra(DijkstraCtx &ctx) {
   }
 }
 
+DijkstraResult FastGraph::dijkstra_adv(DijkstraParams &params) {
+  DijkstraResult res;
+  std::unordered_map<int, utils::MinFinder<int> > dist;
+  std::unordered_set<int> vis;
+  std::unordered_map<int, int> prev;
+  SmallPQ<std::pair<int, int> > q;
+
+  bool loop = params.s == params.t;
+  if (!loop) dist[params.s].update(0);
+  q.push(MP(0, params.s));
+
+  while (q.size() > 0) {
+    int cost = q.top().first;
+    int cur = q.top().second;
+    q.pop();
+
+    if (params.t == cur && (!loop || cost > 0)) {
+      res.cost = cost;
+      while (cur != -1) {
+        res.path.pb(cur);
+        cur = glib::gtl::FindWithDefault(prev, cur, -1);
+        if (cur == params.s) break;
+      }
+      std::reverse(ALL(res.path));
+      return res;
+    }
+
+    if (vis.count(cur)) continue;
+    vis.insert(cur);
+
+    OPA_FOREACH_EDGE(e, cur) {
+      int nxt = edges[e].to;
+      int edge_cost = glib::gtl::FindWithDefault(params.edge_cost, e, 1);
+      int nc = edge_cost + cost;
+      auto &mf = dist[nxt];
+      if (mf.update(nc)) {
+        prev[nxt] = cur;
+        q.push(MP(nc, nxt));
+      }
+    }
+  }
+  res.cost = -1;
+
+  return res;
+}
+
 void FastGraph::bfs_one(BfsCtx &ctx) {
   for (auto &x : ctx.sources) {
     OPA_FOREACH_EDGE(e, x) {
@@ -415,23 +542,21 @@ int FastGraph::get_edge_count(int a, int b, bool norm) const {
 
 std::string FastGraph::str() const {
   std::stringstream ss;
-  ss << glib::strings::Substitute("n_edges=$0, n_vertices=$1\n", n_edges(),
-                                  vertices.size());
+  ss << glib::strings::Substitute("n_edges=$0, n_vertices=$1\n", n_edges(), vertices.size());
   REP (i, vertices.size()) {
-    ss << glib::strings::Substitute("Vertex=$0, real_id=$1, deg=$2\n", i,
-                                    inormv(i), vertices[i].deg);
-    for (auto &edge : get_edges(i, false)) {
-      ss << RAW_OPA_DISP_VARS(inormv(edge.to), edge.prev, edge.next)
-         << std::endl;
+    int v = inormv(i);
+    ss << RAW_OPA_DISP_VARS(i, v, deg(v), get_predecessors(v), get_successors(v)) << std::endl;
+    for (auto &edge : get_edges(v)) {
+      ss << RAW_OPA_DISP_VARS(inormv(edge.to), edge.prev, edge.next) << std::endl;
     }
   }
+  ss << attr_map.str();
 
   return ss.str();
 }
 
 std::vector<std::pair<pii, pii> >
-FastGraph::find_set_neighbours(const std::vector<std::vector<int> > &lst,
-                               bool norm) const {
+FastGraph::find_set_neighbours(const std::vector<std::vector<int> > &lst, bool norm) const {
   std::unordered_map<int, int> node_to_set;
   REP (i, lst.size()) {
     for (auto &v : lst[i]) {
@@ -445,12 +570,18 @@ FastGraph::find_set_neighbours(const std::vector<std::vector<int> > &lst,
     for (auto &e : edge_iter(k.first, false)) {
       int other = FindWithDefault(node_to_set, e.to, -1);
       if (other == -1 || other == self_set) continue;
-      if (other <= self_set)
-        continue; // superset of all previous conditions, clarity
+      if (other <= self_set) continue; // superset of all previous conditions, clarity
       res.emplace_back(MP(inormv(k.first), self_set), MP(inormv(e.to), other));
     }
   }
   return res;
+}
+
+void FastGraph::disconnect_node(int node, bool norm) {
+  node = normv(node, norm);
+  for (auto &x : get_all_edges(node)) {
+    remove_edge(x.id);
+  }
 }
 
 OPA_NAMESPACE_DECL2_END

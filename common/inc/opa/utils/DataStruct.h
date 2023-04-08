@@ -15,6 +15,8 @@ struct IdObj {
   IdType id;
 };
 
+template<class T> 
+std::vector<T> to_vector(const std::unordered_set<T> &set){ return std::vector<T>(ALL(set)); }
 template <class T> class ObjContainer {
 public:
   template <class U> U *add(U *a) {
@@ -317,7 +319,8 @@ public:
   void init(int n) { m_n = n; }
 
   u64 get_fresh_score(const K &key) const {
-    return glib::gtl::FindWithDefault(m_freshness, key, 0);
+    auto it = m_freshness.find(key);
+    return it == m_freshness.end() ?  0 : *it;
   }
 
   u64 new_freshness() const { return step++; }
@@ -393,14 +396,18 @@ using MaxFinderPair = MinFinderPair<K, V, std::greater<K> >;
 template <class T, class Pred = std::less<T> > class MinFinder {
 public:
   typedef MinFinder<T, Pred> SelfType;
-  SelfType &update(const T &x) {
+  bool update(const T &x) {
     if (!m_has) {
       m_best = x;
       m_has = true;
+      return true;
     } else {
-      if (Pred()(x, m_best)) m_best = x;
+      if (Pred()(x, m_best)){
+        m_best = x;
+        return true;
+      }
     }
-    return *this;
+    return false;
   }
 
   template <class U, T U::*GetField>
@@ -445,7 +452,8 @@ public:
   }
 
   int get_or_die(const T &a) const {
-    const int *v = glib::gtl::FindOrNull(m_remap, a);
+    auto it = m_remap.find(a);
+    const int *v  = it == m_remap.end() ?  0 : *it;
     OPA_CHECK(v != nullptr, a);
     return *v;
   }

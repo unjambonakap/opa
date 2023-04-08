@@ -10,13 +10,13 @@ public:
   typedef Fraction<T> SelfType;
   typedef Field<SelfType> SelfField;
 
-  Fraction<T>() {}
-  Fraction<T>(const T &p, const T &q, const SelfField *field) {
+  Fraction() {}
+  Fraction(const T &p, const T &q, const SelfField *field) {
     this->field = field;
     this->set(p, q);
   }
 
-  Fraction<T>(const T &p, const SelfField *field) {
+  Fraction(const T &p, const SelfField *field) {
     this->field = field;
     this->set(p);
   }
@@ -31,32 +31,30 @@ public:
     this->q = q;
   }
   Fraction<T> clone() const { return Fraction<T>(p, q, field); }
-  Fraction<T> create(const T &p, const T &q) const {
-    return Fraction<T>(p, q, field);
-  }
+  Fraction<T> create(const T &p, const T &q) const { return Fraction<T>(p, q, field); }
   Fraction<T> create(const T &p) const { return Fraction<T>(p, field); }
 
   bool operator==(const SelfType &x) const { return p == x.p && q == x.q; }
   bool operator<(const SelfType &x) const { return this->field->lt(*this, x); }
   SelfType operator-() const { return field->neg(*this); }
 
-#define OPA_DEFINE_OP(typ, op, func)                                           \
+#define OPA_DEFINE_OP(typ, op, func)                                                               \
   typ operator op(const typ &a) const { return func(*this, a); }
   OPA_DEFINE_OP(SelfType, +, this->field->add);
   OPA_DEFINE_OP(SelfType, -, this->field->sub);
   OPA_DEFINE_OP(SelfType, *, this->field->mul);
   OPA_DEFINE_OP(SelfType, /, this->field->div);
 
-#define OPA_DEFINE_CMP_OPS_FROM_LT_AND_EQ(typ)                                 \
-  bool operator!=(const typ &a) const { return !(*this == a); }                \
-  bool operator>(const typ &a) const { return !(*this <= a); }                 \
-  bool operator<=(const typ &a) const { return (*this == a || *this < a); }    \
+#define OPA_DEFINE_CMP_OPS_FROM_LT_AND_EQ(typ)                                                     \
+  bool operator!=(const typ &a) const { return !(*this == a); }                                    \
+  bool operator>(const typ &a) const { return !(*this <= a); }                                     \
+  bool operator<=(const typ &a) const { return (*this == a || *this < a); }                        \
   bool operator>=(const typ &a) const { return !(*this < a); }
 
   OPA_DEFINE_CMP_OPS_FROM_LT_AND_EQ(SelfType);
 
   friend std::ostream &operator<<(std::ostream &os, const SelfType &a) {
-    if (a.field == nullptr){
+    if (a.field == nullptr) {
       os << "fraction_not_init";
       return os;
     }
@@ -103,23 +101,19 @@ public:
   virtual QT inv(const QT &a) const { return reduce(create(a.q, a.p)); }
 
   virtual QT mul(const QT &a, const QT &b) const {
-    QT res =
-      this->create(m_base_ring->mul(a.p, b.p), m_base_ring->mul(a.q, b.q));
+    QT res = this->create(m_base_ring->mul(a.p, b.p), m_base_ring->mul(a.q, b.q));
     return reduce(res);
   }
 
   virtual QT add(const QT &a, const QT &b) const {
     T p, q;
     q = m_base_ring->mul(a.q, b.q);
-    p =
-      m_base_ring->add(m_base_ring->mul(a.p, b.q), m_base_ring->mul(b.p, a.q));
+    p = m_base_ring->add(m_base_ring->mul(a.p, b.q), m_base_ring->mul(b.p, a.q));
     QT res = this->create(p, q);
     return reduce(res);
   }
 
-  virtual QT neg(const QT &a) const {
-    return this->import(m_base_ring->neg(a.p), a.q);
-  }
+  virtual QT neg(const QT &a) const { return this->import(m_base_ring->neg(a.p), a.q); }
 
   virtual QT importu32(u32 a) const {
     T p = m_base_ring->importu32(a);
@@ -133,13 +127,9 @@ public:
     return res;
   }
 
-  virtual QT importq(const T &q) const {
-    return this->import(m_base_ring->getE(), q);
-  }
+  virtual QT importq(const T &q) const { return this->import(m_base_ring->getE(), q); }
 
-  virtual QT import(const T &p) const {
-    return this->import(p, m_base_ring->getE());
-  }
+  virtual QT import(const T &p) const { return this->import(p, m_base_ring->getE()); }
 
   virtual QT import(const T &p, const T &q) const {
     QT res = this->create(m_base_ring->import(p), m_base_ring->import(q));
@@ -147,16 +137,10 @@ public:
   }
 
   virtual bool isZ(const QT &a) const { return m_base_ring->isZ(a.p); }
-  virtual bool isE(const QT &a) const {
-    return m_base_ring->isE(a.p) && m_base_ring->isE(a.q);
-  }
+  virtual bool isE(const QT &a) const { return m_base_ring->isE(a.p) && m_base_ring->isE(a.q); }
 
-  virtual QT getZ() const {
-    return create(m_base_ring->getZ(), m_base_ring->getE());
-  }
-  virtual QT getE() const {
-    return create(m_base_ring->getE(), m_base_ring->getE());
-  }
+  virtual QT getZ() const { return create(m_base_ring->getZ(), m_base_ring->getE()); }
+  virtual QT getE() const { return create(m_base_ring->getE(), m_base_ring->getE()); }
   virtual int get_poly_pos() const { return m_base_ring->get_poly_pos(); }
 
   QT import_integer(const T &a) const { return create(a, m_base_ring->getE()); }
@@ -171,13 +155,10 @@ public:
   T integer_part(const QT &a) const { return m_base_ring->div(a.p, a.q); }
   T floor(const QT &a) const { return m_base_ring->div(a.p, a.q); }
   T ceil(const QT &a) const {
-    return m_base_ring->div(m_base_ring->add(a.p, m_base_ring->add(a.q, m_base_ring->getE())),
-                            a.q);
+    return m_base_ring->div(m_base_ring->add(a.p, m_base_ring->add(a.q, m_base_ring->getE())), a.q);
   }
 
-  QT rational_part(const QT &a) const {
-    return create(m_base_ring->mod(a.p, a.q), a.q);
-  }
+  QT rational_part(const QT &a) const { return create(m_base_ring->mod(a.p, a.q), a.q); }
 
   std::vector<QT> import_vec(const std::vector<T> &a) const {
     std::vector<QT> res;
@@ -191,11 +172,11 @@ public:
     return res;
   }
 
-  virtual QT getRand() const  {
+  virtual QT getRand() const {
     return reduce(create(m_base_ring->getRand(), m_base_ring->getRandNZ()));
   }
 
-  virtual bool lt(const QT &a, const QT &b) const  {
+  virtual bool lt(const QT &a, const QT &b) const {
     T l = m_base_ring->mul(a.p, b.q);
     T r = m_base_ring->mul(a.q, b.p);
     return m_base_ring->lt(l, r);
@@ -227,3 +208,15 @@ private:
 };
 
 OPA_NAMESPACE_DECL3_END
+
+namespace std {
+
+template <class T> struct hash<opa::math::common::Fraction<T> > {
+  typedef opa::math::common::Fraction<T> argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &s) const {
+    return std::hash<std::pair<T, T> >{}(MP(s.p, s.q));
+  }
+};
+} // namespace std

@@ -2,18 +2,20 @@
 
 #include "common/Field.h"
 #include "common/PolyRing.h"
-#include <opa/or/best_first_search.h>
-#include <opa/math/common/float.h>
 #include <opa/math/common/Types.h>
+#include <opa/math/common/fast_gf2.h>
+#include <opa/math/common/float.h>
+#include <opa/or/best_first_search.h>
 
 using namespace std;
 const int n_small_prime_test = 40;
 const int n_rm_tries = 25;
 const int factor_large_maxB = 2e9;
+const int kSmallPrimeBound = 1e3;
 
 DEFINE_int32(math_seed, 0, "");
 DEFINE_bool(init_primes, true, "");
-DEFINE_int32(primedb_maxv, 1e2, "");
+DEFINE_int32(primedb_maxv, 1e4, "");
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 
@@ -24,34 +26,38 @@ int bitcount_tb[1 << BITCOUNT_BLK];
 
 std::vector<u32> pl;
 
+void init_primes(int bound) {
+  isc = new u32[bound / 32];
+  memset(isc, 0, sizeof(isc[0]) * (bound / 32));
+  set_isc(0);
+  set_isc(1);
+  u32 ub = sqrt(bound) + 10;
+  if (pl.size()>0) return;
+  for (u32 i = 2; i < bound; ++i)
+    if (!get_isc(i)) {
+      pl.push_back(i);
+      if (i < ub)
+        for (u32 j = i * i; j < bound; j += i) set_isc(j);
+    }
+}
+
 void initMathCommon(int seed) {
   bitcount_tb[0] = 0;
   FOR (i, 1, 1 << BITCOUNT_BLK)
     bitcount_tb[i] = bitcount_tb[i >> 1] + (i & 1);
 
-  isc = new u32[FLAGS_primedb_maxv / 32];
   if (seed == -1) seed = time(0);
   rng.seed(seed);
   rng64.seed(seed);
   bignum_init(seed);
   Float_init(seed);
 
-  u32 ub = sqrt(FLAGS_primedb_maxv) + 10;
   pl.clear();
-  memset(isc, 0, sizeof(isc[0]) * (FLAGS_primedb_maxv / 32));
-  set_isc(0);
-  set_isc(1);
 
-  if (FLAGS_init_primes) {
-    for (u32 i = 2; i < FLAGS_primedb_maxv; ++i)
-      if (!get_isc(i)) {
-        pl.push_back(i);
-        if (i < ub)
-          for (u32 j = i * i; j < FLAGS_primedb_maxv; j += i) set_isc(j);
-      }
-  }
+  if (FLAGS_init_primes) init_primes(FLAGS_primedb_maxv);
 
   init_math_types();
+  init_fast();
 }
 
 void init_math() { initMathCommon(FLAGS_math_seed); }
@@ -122,8 +128,10 @@ bool testPrimeRM(const bignum &n, int ntry) {
 
 bool testPrime(const bignum &n) {
   if (n < FLAGS_primedb_maxv) return isPrimeDB(n.getu32());
-  REP (i, n_small_prime_test)
-    if (n % pl[i] == 0) return false;
+  init_primes(kSmallPrimeBound);
+  int bound = std::min<int>(n_small_prime_test, pl.size());
+
+  REP (i, bound) if (n % pl[i] == 0) return false;
   if (!testPrimeFermat(n, n_rm_tries)) return false;
   return testPrimeRM(n, n_rm_tries);
 }
@@ -152,7 +160,6 @@ BGFactors factor_large(const bignum &a) {
   while (q.size()) {
     bignum u = q.front();
     q.pop();
-    cout << "testing >> " << u << endl;
 
     if (testPrime(u)) {
       factors[u] += 1;

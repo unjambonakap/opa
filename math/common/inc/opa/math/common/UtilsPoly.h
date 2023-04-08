@@ -31,10 +31,10 @@ template <class T> Poly<T> findIrred(const Field<T> &f, int deg) {
 
 template <class T> Poly<T> find_primitive_poly(const Field<T> &f, int deg) {
   PolyRing<T> pr(&f);
+  bignum pw = f.getSize().pow(deg) - 1;
+  BGFactors factors = factor_large(pw);
   while (1) {
     Poly<T> tmp = pr.import(findIrred(f, deg));
-    bignum pw = f.getSize().pow(deg) - 1;
-    BGFactors factors = factor_large(pw);
 
     bool ok = 1;
     for (auto &factor : factors) {
@@ -570,7 +570,7 @@ template <class T> T resultant(const Poly<T> &a, const Poly<T> &b) {
 template <class T>
 Poly<T> make_squarefree(const Poly<T> &poly, Poly<T> *rem = nullptr) {
   auto pr = poly.get_poly_ring();
-  Poly<T> f_dot = pr->derivative(poly);
+  Poly<T> f_dot = pr->derivate(poly);
   Poly<T> common = poly.get_ring()->gcd(poly, f_dot);
   Poly<T> res = poly / common;
   OPA_DISP0(poly, f_dot, common, common * f_dot, res);
@@ -581,7 +581,7 @@ Poly<T> make_squarefree(const Poly<T> &poly, Poly<T> *rem = nullptr) {
 template <class T> bool is_squarefree(const Poly<T> &poly) {
   auto pr = poly.get_poly_ring();
   OPA_TRACE("Is squarefree ", poly);
-  Poly<T> f_dot = pr->derivative(poly);
+  Poly<T> f_dot = pr->derivate(poly);
   OPA_TRACE("Is squarefree ", poly, f_dot);
   Poly<T> common = poly.get_ring()->gcd(poly, f_dot);
   OPA_TRACE("Done squarefree", poly, f_dot, common);

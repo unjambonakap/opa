@@ -1,4 +1,5 @@
 #pragma once
+#include <absl/types/span.h>
 #include <opa/or/or_common.h>
 
 OPA_NAMESPACE_OR
@@ -118,7 +119,7 @@ public:
   double grid_search_func_impl(const std::vector<double> &state) const;
 
 private:
-  glib::gtl::ArraySlice<float> m_data;
+  absl::Span<const float> m_data;
   mutable std::vector<float> m_precomp;
 };
 

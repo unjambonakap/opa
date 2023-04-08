@@ -14,15 +14,15 @@ public:
   }
 
   void init() {
-    if (this->getSize() > 0 && this->getSize() < (1ll << 31) - 1)
+    if (m_factors.empty() && this->getSize() > 0 && this->getSize() < (1ll << 31) - 1)
       this->compute_order_factors();
     m_hasPrimElem = false;
   }
 
-  Field<T>(const bignum &size, const bignum &car) { init(size, car); }
-  Field<T>() {}
+  Field(const bignum &size, const bignum &car) { init(size, car); }
+  Field() {}
 
-  virtual ~Field<T>() {}
+  virtual ~Field() {}
 
   // interface
 
@@ -38,7 +38,7 @@ public:
   virtual T getZ() const = 0;
   virtual T getE() const = 0;
   virtual T getRandRaw() const {
-    assert(0);
+    OPA_ABORT0(true);
     return T();
   }
 
@@ -52,9 +52,7 @@ public:
     return true;
   }
 
-  virtual bool compareRank(const T &a, const T &b) const {
-    return !isZ(a) < !isZ(b);
-  }
+  virtual bool compareRank(const T &a, const T &b) const { return !isZ(a) < !isZ(b); }
 
   virtual T getPrimitiveElem() const {
     if (m_hasPrimElem) return m_cachedPrimElem;
@@ -71,7 +69,7 @@ public:
   }
 
   virtual T getNthRoot(u32 n) const {
-    assert((this->getSize() - 1) % n == 0);
+    OPA_CHECK0((this->getSize() - 1) % n == 0);
     return this->faste(getPrimitiveElem(), (this->getSize() - 1) / n);
   }
 
@@ -82,7 +80,7 @@ public:
   }
 
   virtual bignum getOrderOf(const T &a) const {
-    assert(!isZ(a));
+    OPA_CHECK0(!isZ(a));
 
     bignum cur = this->getSize() - 1;
     for (auto f : m_factors) {
@@ -131,6 +129,18 @@ public:
   mutable BGFactors m_factors;
   mutable T m_cachedPrimElem;
   mutable bool m_hasPrimElem;
+};
+
+template <class T> class GF_pT : public Field<T> {
+public:
+  T n;
+
+  GF_pT() = delete;
+  GF_pT(T n, bool init = true) : n(n) {
+    if (init) this->init(bignum(n), bignum(n));
+  }
+  template<class U>
+  T importT(const U &a) const { return T(a % U(n)); }
 };
 
 OPA_NM_MATH_COMMON_END

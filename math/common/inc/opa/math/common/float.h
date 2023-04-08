@@ -25,6 +25,7 @@ class Float {
   friend class FloatRng;
 
 public:
+  static void set_precision(int prec);
   explicit Float();
   Float(s32 v);
   explicit Float(u32 v);
@@ -73,6 +74,7 @@ public:
   bool operator>(const Float &peer) const { return gt(peer); }
 
   std::string to_str(int ndigits = 10) const;
+  std::string to_data() const;
   double to_double() const;
   bignum to_bignum() const;
   Fraction<bignum> to_frac(const Float &precision) const;
@@ -152,7 +154,7 @@ public:
   }
 
   template <class T> static std::complex<T> iexp(const T &a) {
-    return std::complex<T>(cos(a), sin(a));
+    return std::complex<T>(std::cos(a), std::sin(a));
   }
 
   template <class T> static T erfc(const T &a) {
@@ -163,8 +165,8 @@ public:
   }
 
   template <class T> static std::complex<T> unity_root(int n) {
-    T tmp = 2 * get_pi<T>() / n;
-    return std::complex<T>(cos(tmp), sin(tmp));
+    T tmp = get_pi<T>() * 2 / n;
+    return std::complex<T>(std::cos(tmp), std::sin(tmp));
   }
 
   template <class T> static bool isz(const T &v, const T &cmp) {
@@ -278,3 +280,15 @@ bool operator<(const std::complex<T> &a, const std::complex<T> &b) {
   return a.imag() < b.imag();
 }
 }
+
+namespace std {
+
+template <> struct hash<opa::math::common::Float > {
+  typedef opa::math::common::Float argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &s) const {
+    return std::hash<std::string>{}(s.to_data());
+  }
+};
+} // namespace std

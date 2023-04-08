@@ -6,7 +6,7 @@
 
 OPA_NAMESPACE_DECL2(opa, threading)
 
-OPA_DECL_SPTR(JobMsg, JobMsgPtr);
+OPA_DECL_SPTR(opa::threading::JobMsg, JobMsgPtr);
 typedef s64 JobNonce;
 typedef s64 DataId;
 typedef s32 JobId;
@@ -16,7 +16,7 @@ typedef std::function<Job *()> JobCreator;
 
 enum class DispatcherState : int { Ok, ChangedJob, Wait, Done };
 
-static JobMsg Build_StatusMsg(StatusCode status) {
+static opa::threading::JobMsg Build_StatusMsg(StatusCode status) {
     JobMsg res;
     res.set_type(MessageType::Status);
     StatusMsg status_msg;

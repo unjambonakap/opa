@@ -136,6 +136,11 @@ public:
       OPA_DISP0("failed to find recursion");
       return false;
     }
+    if (vec.size() == 1) {
+      // all zero sequence
+      vec.pb(field->getE());
+    }
+      OPA_DISP0("KAA  ", vec);
     TExt poly = pr.import(vec, true);
     TExt rseq = pr.import(seq, true);
 

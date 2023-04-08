@@ -38,12 +38,12 @@ public:
     return res;
   }
 
-  Matrix<T>(Matrix<T> &&a) { affect(a); }
-  Matrix<T> &operator=(Matrix<T> &&a) {
+  Matrix(Matrix<T> &&a) { affect(a); }
+  Matrix &operator=(Matrix<T> &&a) {
     affect(a);
     return *this;
   }
-  Matrix<T>(const Matrix<T> &a) { copy(a); }
+  Matrix(const Matrix<T> &a) { copy(a); }
 
   void copy(const Matrix<T> &a);
   void prepare_set(const Matrix<T> &a, int r0, int c0, int nr, int nc);

@@ -10,6 +10,11 @@ class UnionJoin {
 public:
   UnionJoin(int n = 0) { reset(n); }
   void merge(int a, int b) {
+    set_repr(a, b);
+  }
+
+  void set_repr(int a, int b) {
+    // a is repr of b
     a = root(a);
     b = root(b);
     if (a != b) {
@@ -18,6 +23,7 @@ public:
       m_tb[b] = a;
     }
   }
+
   bool same(int a, int b) const { return root(a) == root(b); }
   bool is_repr(int a) const { return m_tb[a] < 0; }
 
@@ -75,6 +81,17 @@ public:
         res.emplace_back();
       }
       res[v].push_back(i);
+    }
+    return res;
+  }
+
+
+  std::unordered_map<int, std::vector<int>> get_groups_map() const {
+    std::unordered_map<int, int> rmp;
+    std::unordered_map<int, std::vector<int>> res;
+    REP (i, n()) {
+      int x = root(i);
+      res[root(i)].pb(i);
     }
     return res;
   }

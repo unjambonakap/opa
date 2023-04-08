@@ -1,11 +1,12 @@
 #pragma once
 
-#include <opa/math/common/float.h>
+#include <opa/predef.h>
 #include <opa/math/common/Field.h>
 #include <opa/math/common/FractionField.h>
 #include <opa/math/common/bignum.h>
+#include <opa/math/common/float.h>
 
-OPA_NAMESPACE_DECL3(opa, math, common)
+OPA_NM_MATH_COMMON
 
 template <class T, class U> class FField : public Field<T> {
 public:
@@ -25,10 +26,19 @@ public:
 
   virtual T getZ() const override { return T(0); }
   virtual T getE() const override { return T(1); }
-  virtual T getRandRaw() const override { assert(0); }
+  virtual T getRandRaw() const override {
+    OPA_CHECK0(false);
+    return T(0);
+  }
   virtual T getRand() const override { return FloatUtil::get_rand_uni<T>(T(0), T(1)); }
-  virtual bool eq(const T &a, const T &b) const override {
-    return std::abs(a - b) <= eps;
+  virtual bool eq(const T &a, const T &b) const override { return std::abs(a - b) <= eps; }
+  virtual T getNthRoot(u32 n) const override {
+    if constexpr (std::is_same<std::complex<U>, T>::value) {
+      return FloatUtil::unity_root<U>(n);
+
+    } else {
+      OPA_CHECK0(false);
+    }
   }
   U eps;
 };
@@ -42,4 +52,5 @@ typedef FractionField<bignum> RealBG;
 typedef ComplexField<Float> ComplexF;
 typedef ComplexField<double> ComplexDouble;
 
-OPA_NAMESPACE_DECL3_END
+
+OPA_NM_MATH_COMMON_END

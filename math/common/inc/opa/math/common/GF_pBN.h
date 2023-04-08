@@ -1,15 +1,14 @@
 #pragma once
 
-#include <opa/math/common/Utils.h>
 #include <opa/math/common/Field.h>
+#include <opa/math/common/Utils.h>
 #include <opa/math/common/bignum.h>
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 
-class GF_pBN : public Field<bignum> {
+class GF_pBN : public GF_pT<bignum> {
 public:
-  GF_pBN();
-  GF_pBN(const bignum &n) { this->init(n); }
+  GF_pBN(const bignum &n) : GF_pT(n) { this->init(n); }
   void init(const bignum &n);
 
   virtual bignum mul(const bignum &a, const bignum &b) const;

@@ -2,12 +2,11 @@
 
 #include <opa/utils/string.h>
 #include <opa/utils/serialize.h>
-#include <glib/core/stringpiece.h>
-#include <glib/core/raw_coding.h>
+#include <string_view>
 
 OPA_NAMESPACE(opa, utils)
 
-static std::string read_file(glib::StringPiece filename) {
+static std::string read_file(string_view filename) {
   std::ifstream is{ filename.data(), std::ios::binary | std::ios::ate };
   OPA_CHECK0(is);
   auto size = is.tellg();
@@ -19,9 +18,9 @@ static std::string read_file(glib::StringPiece filename) {
 
 class BufferReader {
 public:
-  BufferReader(glib::StringPiece str) : m_str(str) {}
+  BufferReader(string_view str) : m_str(str) {}
 
-  glib::StringPiece consume(int len) { return m_str.substr(m_pos, len); }
+  string_view consume(int len) { return m_str.substr(m_pos, len); }
 
   const void *get(int advance) {
     const void *res = (const void *)(m_str.data() + m_pos);
@@ -42,7 +41,7 @@ public:
   double read_f64() { return read<double>(); }
 
 private:
-  glib::StringPiece m_str;
+  string_view m_str;
   int m_pos=0;
 };
 

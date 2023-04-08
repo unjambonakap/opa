@@ -20,7 +20,6 @@
 #include <opa_callback.h>
 #include <opa_common_base.h>
 #include <opa_common.h>
-#include <glib/core/stringpiece.h>
 %}
 
 %include "numpy.i"
@@ -37,7 +36,6 @@ import_array();
 %include "opa_inc.h"
 %include "opa_common_base.h"
 %include "opa_common.h"
-#include "glib/core/stringpiece.h"
 %ignore DECLARE_;
 
 namespace std {
@@ -65,24 +63,15 @@ namespace std {
 #include "swig_common.h"
 %}
 
-%typemap(in) glib::StringPiece (swig_tsf_data data){
-  $1=data.get_piece($input);
-  if (!data.ok) SWIG_fail;
-}
-%typemap(in) const glib::StringPiece& (swig_tsf_data data){
-  $1=data.get_piece_ptr($input);
-  if (!data.ok) SWIG_fail;
-}
-%typemap(in) const opa::stolen::StringRef& (swig_tsf_data data){
+%typemap(in) const std::string_view& (swig_tsf_data data){
   $1=data.get_ref_ptr($input);
   if (!data.ok) SWIG_fail;
 }
-%typemap(in) opa::stolen::StringRef (swig_tsf_data data){
+%typemap(in) std::string_view (swig_tsf_data data){
   $1=data.get_ref($input);
   if (!data.ok) SWIG_fail;
 }
-%typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) glib::StringPiece {$1 = 1; }
-%typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) opa::stolen::StringRef{$1 = 1; }
+%typemap(typecheck, precedence=SWIG_TYPECHECK_SWIGOBJECT) std::string_view {$1 = 1; }
 
 
 %typemap(out) std::string {

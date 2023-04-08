@@ -58,9 +58,20 @@ struct CComponent {
 
 std::pair<int,int> get_tree_center(const FastGraph &tree);
 std::vector<std::vector<int>> get_tree_automorphism_partitions(const FastGraph &tree);
+void contract_edge(FastGraph &graph, int a, int b);
 
 
 std::vector<CComponent>
 compute_digraph_connected_components(const FastGraph &graph);
+
+std::vector<int> topological_ordering(const FastGraph &graph);
+UPTR(FastGraph) compress_digraph(const FastGraph &graph,
+    const std::unordered_set<int> &keep_nodes);
+SPTR(algo::UnionJoin) compress_paths(FastGraph &graph, std::unordered_set<int> blacklist) ;
+
+void serialize_graph(FILE *f, const FastGraph &graph) ;
+FastGraph deserialize_graph(FILE *f, int mode) ;
+
+
 
 OPA_NAMESPACE_DECL2_END

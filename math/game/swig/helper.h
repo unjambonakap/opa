@@ -117,7 +117,6 @@ struct SwigVectorHelper {
   }
 };
 
-std::string obj_str(PyObject *obj) { return swig_tsf_data().get_obj_str(obj); }
 
 struct SwigSeqLoader {
   bool ok = false;

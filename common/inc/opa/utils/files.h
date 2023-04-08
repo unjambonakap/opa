@@ -2,7 +2,6 @@
 
 #include <opa_common.h>
 
-#include <glib/platform/posix/posix_file_system.h>
 #include <type_traits>
 #include <yaml-cpp/yaml.h>
 

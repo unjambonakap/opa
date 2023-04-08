@@ -34,7 +34,7 @@ public:
                          ComplexRoot *complex_root) const {
     PolyCT poly = import_poly(m_cpr, rpoly);
     CType x(1.3, 0.314159);
-    PolyCT dpoly = poly.derivative();
+    PolyCT dpoly = poly.derivate();
 
     CType v = poly(x);
     CType dv = dpoly(x);

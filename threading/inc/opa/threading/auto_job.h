@@ -14,12 +14,12 @@ class AutoJob
     public opa::utils::ProtobufParams {
 
 public:
-  virtual void tworker_initialize(const JobMsg &base_msg,
+  virtual void tworker_initialize(const opa::threading::JobMsg &base_msg,
                                   const opa::utils::AnyMsg &init) override {
     load(init);
   }
 
-  virtual void tworker_do_work(const JobMsg &base_msg,
+  virtual void tworker_do_work(const opa::threading::JobMsg &base_msg,
                                const opa::utils::AnyMsg &data,
                                opa::utils::AnyMsg &out_res) override {
     TData x;
@@ -46,7 +46,7 @@ public:
   }
 
   virtual void
-  tserver_set_work_result(const JobMsg &base_msg, const opa::utils::AnyMsg &res,
+  tserver_set_work_result(const opa::threading::JobMsg &base_msg, const opa::utils::AnyMsg &res,
                           opa::threading::DataId data_id) override {
     TRes x;
     opa::utils::anymsg_load(x, res);

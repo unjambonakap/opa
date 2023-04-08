@@ -3,6 +3,7 @@
 %include "std_string.i"
 %include "typemaps.i"
 %include "opa.i"
+%include "std_iostream.i"
 
 
 %{
@@ -10,6 +11,12 @@
 extern "C" {
 #include "opa/wrapper/curve25519-donna.h"
 }
+%}
+
+
+%{
+#include "libqi/rpl/rpl.h"
+#include "libqi/qi.h"
 %}
 
 %typemap(in) (unsigned char *rsDataFrame) (swig_tsf_data data) { 
@@ -47,3 +54,25 @@ extern "C" {
 extern "C" {
 %include "opa/wrapper/curve25519-donna.h"
 }
+namespace rpl {
+}
+%{ 
+#include <sstream> 
+using namespace std; 
+%} 
+
+
+%inline %{ 
+std::ostream& getStdout() { 
+  return std::cout; 
+} 
+%} 
+
+%shared_ptr(std::ostream)
+
+//%template(quad_inter_bigint) quad_inter<bigint>;
+
+%include "libqi/rpl/bigint_matrix.h"
+%include "libqi/kernel/QIInter.h"
+%include "libqi/kernel/QIQsicStruct.h"
+%include "libqi/io/QIParser.h"

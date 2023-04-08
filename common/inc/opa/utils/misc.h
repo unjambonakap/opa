@@ -1,6 +1,5 @@
 #pragma once
 
-#include <glib/gtl/map_util.h>
 #include <opa/stolen/StringRef.h>
 #include <opa/utils/serialize.h>
 #include <opa/utils/string.h>

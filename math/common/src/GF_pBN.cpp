@@ -2,8 +2,6 @@
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 
-GF_pBN::GF_pBN(){}
-
 void GF_pBN::init(const bignum &n) {
   Field<bignum>::init(n, n);
 }

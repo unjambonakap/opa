@@ -2,24 +2,16 @@
 struct swig_tsf_data {
   std::vector<std::pair<PyObject *, bool> > objs;
   std::string str;
-  opa::stolen::StringRef ref;
-  glib::StringPiece piece;
+  std::string_view view;
   bool ok = true;
   int n;
   u8 *str_buf;
 
-  glib::StringPiece get_piece(PyObject *init) { return *get_piece_ptr(init); }
-  glib::StringPiece *get_piece_ptr(PyObject *init) {
+  std::string_view get_view(PyObject *init) { return *get_view_ptr(init); }
+  std::string_view *get_view_ptr(PyObject *init) {
     get_u8(init);
-    piece = glib::StringPiece((const char *)str_buf, n);
-    return &piece;
-  }
-  opa::stolen::StringRef get_ref(PyObject *init) { return *get_ref_ptr(init); }
-
-  opa::stolen::StringRef *get_ref_ptr(PyObject *init) {
-    get_u8(init);
-    ref = opa::stolen::StringRef((const char *)str_buf, n);
-    return &ref;
+    view = std::string_view((const char *)str_buf, n);
+    return &view;
   }
 
   void add_obj(PyObject *obj, bool created) { objs.emplace_back(obj, created); }

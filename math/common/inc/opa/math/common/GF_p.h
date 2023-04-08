@@ -6,10 +6,9 @@
 
 OPA_NM_MATH_COMMON
 
-class GF_p : public Field<u32> {
+class GF_p : public GF_pT<u32> {
 public:
-  GF_p(u32 n);
-  GF_p();
+  GF_p(u32 n, S64Factors factors = {});
   void init(u32 n);
 
   virtual u32 mul(const u32 &a, const u32 &b) const;
@@ -19,13 +18,9 @@ public:
   virtual bool isZ(const u32 &a) const;
   virtual bool isE(const u32 &a) const;
   virtual u32 import(const u32 &a) const;
-  virtual u32 import_bg(const bignum &a) const {
-    return importu32((a % getSizeU32()).getu32());
-  }
+  virtual u32 import_bg(const bignum &a) const { return importu32((a % getSizeU32()).getu32()); }
   virtual u32 getRandRaw() const;
-  virtual bignum export_base(const u32 &x) const {
-    return bignum::fromu32(x);
-  }
+  virtual bignum export_base(const u32 &x) const { return bignum::fromu32(x); }
 
   virtual u32 getZ() const;
   virtual u32 getE() const;

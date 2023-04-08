@@ -303,8 +303,9 @@ std::vector<T> findMinLinearRecursion_Massey(const Field<T> &field,
   for (; tb[i] == field.getZ() && i < tb.size(); ++i)
     ;
 
-  if (i == tb.size())
+  if (i == tb.size()){
     return std::vector<T>(1, field.getE());
+  }
 
   int lastPos = 0;
   T lastDiff;

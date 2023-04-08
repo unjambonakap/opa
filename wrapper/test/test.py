@@ -75,9 +75,18 @@ def check_rs(ctx):
   for x in rs.g().to_vec():
     print(pr_gf2.export_base(x))
 
-
-
-
+def test_qi(ctx):
+  u = Z.swig_unsafe.opa_wrapper_swig
+  p1 = u.QIParser()
+  p2 = u.QIParser()
+  p1.setQuadricDesc (b'x^2+y^2+z^2-1');
+  p2.setQuadricDesc (b'x^2-2*x+y^2+z^2-0');
+  p1.parse()
+  p2.parse()
+  m1 =p1.getMatricialDesc()
+  m2 =p2.getMatricialDesc()
+  print(u.getStdout())
+  u.intersection(m1, m2, 0, u.getStdout())
 
 def main():
   global m

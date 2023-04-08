@@ -28,6 +28,7 @@
 using namespace opa::crypto;
 using namespace opa::utils;
 using namespace opa::crypto::cracker;
+using namespace opa::threading;
 %}
 
 
@@ -60,6 +61,7 @@ using namespace opa::crypto::cracker;
 
 %include "opa/utils/serialize.h"
 %include "opa/crypto/base.h"
+using opa::threading::JobMsg;
 
 namespace std{
   %template(PatternVector) std::vector<opa::crypto::cracker::Pattern>;
@@ -70,7 +72,7 @@ namespace std{
 
 
 
-%rename("%(regex:/^server_.*/$ignore/)s") "";
+//%rename("%(regex:/^server_.*/$ignore/)s") "";
 %rename("%(regex:/^worker_.*/$ignore/)s") "";
 %rename("%(regex:/^worker_.*/$ignore/)s") "";
 %ignore "Build_StatusMsg";

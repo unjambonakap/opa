@@ -1,15 +1,16 @@
+#include "common/Utils.h"
 #include <common/GF_p.h>
 
 OPA_NAMESPACE_DECL3(opa, math, common)
-
-GF_p::GF_p() {}
 
 void GF_p::init(u32 n) {
   Field<u32>::init(n, n);
   activateU32();
 }
 
-GF_p::GF_p(u32 n) { init(n); }
+GF_p::GF_p(u32 n, S64Factors factors) : GF_pT(n, false) { 
+  m_factors = to_bgfactors(factors);
+  init(n); }
 
 u32 GF_p::mul(const u32 &a, const u32 &b) const {
   return (u64)a * b % getSizeU32();

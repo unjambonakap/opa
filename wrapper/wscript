@@ -8,5 +8,7 @@ x.register_libs(x.libs.Common_N)
 
 x.auto()
 x.get(x.typ.SWIG).update(install=True,
-                         libs=[x.libs.SwigCommon2H_N])
+                         libs=[x.libs.SwigCommon2H_N
+                               #, x.packages.QI
+                               ])
 x.setup()

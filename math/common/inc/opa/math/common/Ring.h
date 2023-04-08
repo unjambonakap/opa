@@ -23,12 +23,13 @@ protected:
 public:
   typedef T Type;
   u32 getSizeU32() const {
-    assert(is_u32size);
+    OPA_CHECK0(is_u32size);
     return m_u32size;
   }
 
-  virtual ~Ring<T>() {}
+  virtual ~Ring() {}
   void init(const bignum &size, const bignum &car) {
+    if (this->is_init()) return;
     Initable::init();
     m_size = size;
     m_car = car;
@@ -44,8 +45,8 @@ public:
     return nullptr;
   }
 
-  Ring<T>() {}
-  Ring<T>(const bignum &size, const bignum &car) { init(size, car); }
+  Ring() {}
+  Ring(const bignum &size, const bignum &car) { init(size, car); }
   virtual bignum export_base(const T &x) const {
     OPA_CHECK0(0);
     return bignum();
@@ -105,7 +106,7 @@ public:
 
   virtual bool isField() const { return false; }
   virtual T getRandRaw() const {
-    assert(0);
+    OPA_CHECK0(0);
     return T();
   }
 
@@ -141,7 +142,7 @@ public:
   virtual bool isE(const T &a) const = 0;
   virtual bool eq(const T &a, const T &b) const { return a == b; }
   virtual bool lt(const T &a, const T &b) const {
-    assert(0);
+    OPA_CHECK0(0);
     return false;
   }
 
@@ -151,12 +152,12 @@ public:
   virtual T getE() const = 0;
   virtual T getME() const { return this->neg(this->getE()); }
   virtual T importu32(u32 a) const {
-    assert(0);
+    OPA_CHECK0(false);
     return T();
   }
   virtual T import_bg(const bignum &a) const { return importu32(a.getu32()); }
   virtual T getRand() const {
-    assert(0);
+    OPA_CHECK0(false);
     return T();
   }
   virtual int get_poly_pos() const {
@@ -166,7 +167,7 @@ public:
 
   virtual void norm_fraction(T &a, T &b) const {}
   virtual T abs(const T &a) const {
-    assert(0);
+    OPA_CHECK0(false);
     return a;
   }
 

@@ -175,12 +175,13 @@ public:
 template <typename Stream> class CsvReader : public CsvReaderBase {
 public:
   CsvReader() {}
-  CsvReader(Stream *stream, bool has_headers = true) {
-    init(stream, has_headers);
+  CsvReader(Stream *stream, bool has_headers = true, char sep=',') {
+    init(stream, has_headers, sep);
   }
-  void init(Stream *stream, bool has_headers = true) {
+  void init(Stream *stream, bool has_headers = true, char sep=',') {
     m_stream = stream;
     m_has_headers = has_headers;
+    m_sep = sep;
 
     set_next_line();
     if (m_has_headers) {
@@ -195,7 +196,7 @@ public:
     int pos = 0;
     std::string &cur = m_cur_line[m_p ^ 1];
     while (pos < cur.size()) {
-      int nxt = cur.find(',', pos);
+      int nxt = cur.find(m_sep, pos);
       if (nxt == std::string::npos)
         nxt = cur.size();
       else
@@ -238,6 +239,7 @@ private:
   bool m_is_end = false;
   std::string m_cur_line[2];
   std::vector<opa::stolen::StringRef> m_fields;
+  char m_sep;
 };
 
 template <typename... Args> class CsvFieldReader {
