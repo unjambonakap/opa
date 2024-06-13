@@ -3,6 +3,7 @@
 #include <opa/math/common/Utils.h>
 #include <opa/math/common/bignum.h>
 #include <opa/utils/misc.h>
+#include <opa/utils/range.h>
 
 OPA_NM_MATH_COMMON
 template <class T> T get_unity(const T &a) { return 1; }
@@ -96,14 +97,13 @@ public:
   }
 
   virtual T egcd(const T &a, const T &b, T &u, T &v) const;
-  virtual T egcd2(const T &a, const T &b, T &u, T &v, T &u2, T &v2,
-                  bool &gcd_on_a) const {
+  virtual T egcd2(const T &a, const T &b, T &u, T &v, T &u2, T &v2, bool &gcd_on_a) const {
     if (compareRank(a, b)) return egcd2(b, a, v, u, v2, u2, gcd_on_a ^= 1);
-    T res =
-      _egcd2(a, b, getE(), getZ(), getZ(), getE(), u, v, u2, v2, gcd_on_a);
+    T res = _egcd2(a, b, getE(), getZ(), getZ(), getE(), u, v, u2, v2, gcd_on_a);
     return res;
   }
 
+  T sgn_v(const T &val, int pw_minus1) const { return pw_minus1 % 2 == 0 ? val : this->neg(val); }
   virtual bool isField() const { return false; }
   virtual T getRandRaw() const {
     OPA_CHECK0(0);
@@ -121,8 +121,7 @@ public:
   T dot(const std::vector<T> &a, const std::vector<T> &b) const {
     T res = getZ();
     OPA_CHECK_EQ0(a.size(), b.size());
-    REP (i, a.size())
-      res = this->add(res, this->mul(a[i], b[i]));
+    REP (i, a.size()) res = this->add(res, this->mul(a[i], b[i]));
     return res;
   }
 
@@ -130,6 +129,14 @@ public:
   virtual bool ediv(const T &a, const T &b, T *q, T *r) const = 0;
   virtual bool compareRank(const T &a,
                            const T &b) const = 0; // return rank(a) < rank(b)
+
+  virtual T mulv(const std::vector<T> &a) const {
+    return this->mul(a);
+  }
+
+  virtual T mul(const std::vector<T> &a) const {
+    return  QQ::fold_left(a, this->getE(), STD_FUNC2(this->mul));
+  }
 
   virtual T mul(const T &a, const T &b) const = 0;
   virtual T add(const T &a, const T &b) const = 0;
@@ -143,6 +150,7 @@ public:
   virtual bool eq(const T &a, const T &b) const { return a == b; }
   virtual bool lt(const T &a, const T &b) const {
     OPA_CHECK0(0);
+
     return false;
   }
 
@@ -165,18 +173,27 @@ public:
   } // return id of poly variable
     // eoi
 
+  virtual int sel_for_stab(const std::vector<T> &tb) const {
+    REP(i,tb.size()) if (this->isInv(tb[i])) return i;
+    return -1;
+  }
+
   virtual void norm_fraction(T &a, T &b) const {}
   virtual T abs(const T &a) const {
+    OPA_CHECK0(false);
+    return a;
+  }
+  virtual T sqrt(const T &a) const {
     OPA_CHECK0(false);
     return a;
   }
 
 protected:
   T _gcd(const T &a, const T &b) const;
-  T _egcd(const T &a, const T &b, const T &ua, const T &va, const T &ub,
-          const T &vb, T &u, T &v) const;
-  T _egcd2(const T &a, const T &b, const T &ua, const T &va, const T &ub,
-           const T &vb, T &u, T &v, T &u2, T &v2, bool &gcd_on_a) const;
+  T _egcd(const T &a, const T &b, const T &ua, const T &va, const T &ub, const T &vb, T &u,
+          T &v) const;
+  T _egcd2(const T &a, const T &b, const T &ua, const T &va, const T &ub, const T &vb, T &u, T &v,
+           T &u2, T &v2, bool &gcd_on_a) const;
 };
 
 template <class T> T Ring<T>::gcd(const T &a, const T &b) const {
@@ -212,8 +229,8 @@ template <class T> T Ring<T>::egcd(const T &a, const T &b, T &u, T &v) const {
 }
 
 template <class T>
-T Ring<T>::_egcd(const T &a, const T &b, const T &ua, const T &va, const T &ub,
-                 const T &vb, T &u, T &v) const {
+T Ring<T>::_egcd(const T &a, const T &b, const T &ua, const T &va, const T &ub, const T &vb, T &u,
+                 T &v) const {
   if (isZ(b)) {
     u = ua;
     v = va;
@@ -229,8 +246,8 @@ T Ring<T>::_egcd(const T &a, const T &b, const T &ua, const T &va, const T &ub,
 }
 
 template <class T>
-T Ring<T>::_egcd2(const T &a, const T &b, const T &ua, const T &va, const T &ub,
-                  const T &vb, T &u, T &v, T &u2, T &v2, bool &gcd_on_a) const {
+T Ring<T>::_egcd2(const T &a, const T &b, const T &ua, const T &va, const T &ub, const T &vb, T &u,
+                  T &v, T &u2, T &v2, bool &gcd_on_a) const {
   if (isZ(b)) {
     u = ua;
     v = va;
@@ -242,8 +259,7 @@ T Ring<T>::_egcd2(const T &a, const T &b, const T &ua, const T &va, const T &ub,
   assert(res);
   q = neg(q);
 
-  T d = _egcd2(b, r, ub, vb, add(ua, mul(ub, q)), add(va, mul(vb, q)), u, v, u2,
-               v2, gcd_on_a ^= 1);
+  T d = _egcd2(b, r, ub, vb, add(ua, mul(ub, q)), add(va, mul(vb, q)), u, v, u2, v2, gcd_on_a ^= 1);
   if (d == b) {
     u2 = ua;
     v2 = va;
@@ -251,8 +267,7 @@ T Ring<T>::_egcd2(const T &a, const T &b, const T &ua, const T &va, const T &ub,
   return d;
 }
 
-template <class T>
-bignum Ring<T>::compute_order(const T &a, const BGFactors &factors) {
+template <class T> bignum Ring<T>::compute_order(const T &a, const BGFactors &factors) {
   bignum cur = getSize() - 1;
   assert(isE(this->faste(a, cur)));
 

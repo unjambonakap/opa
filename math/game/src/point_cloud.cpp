@@ -303,15 +303,15 @@ Box2DSpec compute_best_box2d(const Point2Vec &points) {
   utils::MinFinderPair<double, Box2DSpec> best;
 
   REP (pdown, n) {
-    for (; positive_angle(angles[pright] - angles[pdown]) < PI / 2; ++pright)
+    for (; positive_angle(angles[pright] - angles[pdown]) < OPA_PI / 2; ++pright)
       ;
     pup = std::max(pup, pright);
-    for (; pup != pdown + n && positive_angle(angles[pup] - angles[pdown]) < PI;
+    for (; pup != pdown + n && positive_angle(angles[pup] - angles[pdown]) < OPA_PI;
          ++pup)
       ;
     pleft = std::max(pleft, pup);
     for (; pleft != pdown + n &&
-           positive_angle(angles[pleft] - angles[pdown]) < 3 * PI / 2;
+           positive_angle(angles[pleft] - angles[pdown]) < 3 * OPA_PI / 2;
          ++pleft)
       ;
     Box2DSpec cnd;
@@ -342,12 +342,12 @@ Box2DSpec compute_best_box2d_dumb(const Point2Vec &points) {
   auto strategy = Strategy(managed_desc, stop_criteria, CircleManifold);
   auto search = OR::AdaptativeSearcher<double, Strategy>(
     [&](const double &a) {
-      auto res = compute_aabb_box2d(points, d2_rot(a * 2 * PI));
+      auto res = compute_aabb_box2d(points, d2_rot(a * 2 * OPA_PI));
       return res.area();
     },
     strategy);
   auto result = search.find_minimum();
-  Rot2 rot = d2_rot(result.point * 2 * PI);
+  Rot2 rot = d2_rot(result.point * 2 * OPA_PI);
   Box2DSpec res = compute_aabb_box2d(points, rot).to_box();
   res.corner = rot * res.corner;
   res.v = rot * res.v;

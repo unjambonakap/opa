@@ -30,7 +30,7 @@ glm::quat quat_tsf_vec(const glm::vec3 &from, const glm::vec3 &to) {
       return glm::quat(1., 0, 0, 0);
 
     glm::vec3 pivot = vec_make_ortho(vec_rand_uni(), from);
-    return quat_from_vec_rot(pivot, PI);
+    return quat_from_vec_rot(pivot, OPA_PI);
 
   } else {
     glm::vec3 dir = glm::normalize(glm::cross(from, to));

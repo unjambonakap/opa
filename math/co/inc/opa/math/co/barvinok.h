@@ -6,6 +6,8 @@
 #include <opa/math/common/fast_gf2.h>
 #include <opa/math/common/matrix_utils.h>
 #include <opa/or/grid_search.h>
+#include <range/v3/algorithm/max_element.hpp>
+#include <vector>
 
 OPA_MATH_CO
 
@@ -16,8 +18,7 @@ public:
     if (n == -1) return;
     fact.resize(n + 1);
     fact[0] = 1;
-    REP (i, n)
-      fact[i + 1] = fact[i] * (i + 1);
+    REP (i, n) fact[i + 1] = fact[i] * (i + 1);
   }
 
   bignum cnk(int n, int k) const {
@@ -40,20 +41,20 @@ public:
   static constexpr bool kLinear = true;
   Hyperplane(const QModule_t &w, const Q &level) { this->init(w, level); }
 
-  Hyperplane(const std::vector<QModule_t> &points, bool linear = !kLinear) {
+  Hyperplane(const std::vector<QModule_t> &points, bool linear = !kLinear,
+             const std::vector<QModule_t> &null_space = {}) {
     OPA_CHECK0(!points.empty());
     int n = points[0].size();
     Matrix<Q> tmat(&QF, n, n - 1 + n);
-    REP (i, n)
-      tmat(i, n - 1 + i) = QF.getE();
+    REP (i, n) tmat(i, n - 1 + i) = QF.getE();
 
     if (!linear) {
-      OPA_CHECK_EQ0(points.size(), n);
-      FOR (i, 1, n)
-        tmat.set_col(i - 1, (points[i] - points[0]));
+      OPA_CHECK_EQ0(points.size() + null_space.size(), n);
+      tmat.set_cols(LQ::concat(points | LQ::drop(1) | STD_TSFX(x - points[0]), null_space) |
+                    STD_VEC);
     } else {
-      OPA_CHECK_EQ0(points.size(), n - 1);
-      tmat.set_cols(points);
+      OPA_CHECK_EQ0(points.size() + null_space.size(), n - 1);
+      tmat.set_cols(LQ::concat(points, null_space) | STD_VEC);
     }
 
     tmat.row_echelon(n, n - 1);
@@ -134,8 +135,7 @@ struct PolyhedraCone {
   QModule_t vertex;
   std::vector<ZModule_t> rays;
   std::vector<PolyhedraSimplicialDecomposition> simplicial_decomposition;
-  OPA_DECL_COUT_OPERATOR2(PolyhedraCone, a.vertex, a.rays,
-                          a.simplicial_decomposition);
+  OPA_DECL_COUT_OPERATOR2(PolyhedraCone, a.vertex, a.rays, a.simplicial_decomposition);
 };
 
 struct Polytope_ConeRepr {
@@ -143,21 +143,166 @@ struct Polytope_ConeRepr {
   OPA_DECL_COUT_OPERATOR2(Polytope_ConeRepr, a.cones);
 };
 
+template <class U> struct LexCompare {
+  bool operator()(const U &a, const U &b) const {
+    return std::lexicographical_compare(ALL(a), ALL(b));
+  }
+};
+
+class Polyhedra_RelRepr {
+public:
+  Polyhedra_RelRepr(const std::vector<Hyperplane> &rel_ineq) { init(rel_ineq); }
+
+  void init(const std::vector<Hyperplane> &rel_ineq) {
+    if (is_init) return;
+    this->rel_ineq = rel_ineq;
+    is_init = true;
+    OPA_CHECK0(rel_ineq.size() > 0);
+    n = rel_ineq.size();
+    d = rel_ineq[0].dim();
+  }
+
+  void maybe_add_vertex(const std::vector<int> &hps_sel, std::vector<QModule_t> &vertices) {
+    Matrix<Q> mat(&QF, d, d);
+    std::vector<Q> pt;
+    REP (i, hps_sel.size()) {
+      mat.set_row(i, rel_ineq[hps_sel[i]].w);
+      pt.emplace_back(rel_ineq[hps_sel[i]].level);
+    }
+    Matrix<Q> imat;
+    if (!mat.invert(&imat)) return;
+    QModule_t ipt(imat.eval(pt));
+
+    for (auto &hp : rel_ineq)
+      if (!hp.contains(ipt)) return;
+    vertices.push_back(ipt);
+    return;
+  }
+
+  const std::vector<QModule_t> &get_vertices() {
+    if (!this->vertices.has_value()) {
+      std::vector<QModule_t> vertices;
+      OPA_TRACE("Finding vertex of polyhedron. ", n, d);
+      // TODO: compute faces directly here, instead of redoing work in
+      // VertexRepr
+      OR::SubsetSelector<int>(
+        utils::range(0, n).tb(),
+        [&](const std::vector<int> &sel) {
+          this->maybe_add_vertex(sel, vertices);
+          return OR::SubsetSelectorRes{ false, true };
+        },
+        d);
+      OPA_TRACE("Found vertex repr > >", rel_ineq, vertices);
+      std::sort(ALL(vertices), LexCompare<QModule_t>());
+      utils::make_unique(vertices);
+      this->vertices.emplace(vertices);
+    }
+    return this->vertices.value();
+  }
+
+  std::vector<Hyperplane> rel_ineq;
+  int n, d;
+  std::optional<std::vector<QModule_t> > vertices;
+
+  bool is_init = false;
+};
+
+std::pair<std::vector<Hyperplane>, Matrix<Q> >
+compute_poly_proj_faces(const std::vector<Hyperplane> &_faces,
+                        const std::vector<Hyperplane> &proj_planes) {
+
+  auto faces = _faces;
+  const int dim = faces[0].w.size();
+  auto tsf_mat = Matrix<Q>::identity(&QF, dim);
+  REP (i, proj_planes.size()) {
+    const int cur_dim = dim - i;
+    auto proj_mat = expand_unimodular(&QF, proj_planes[i].w.elems, cur_dim - 1);
+    auto tmat = Matrix<Q>::identity(&QF, dim);
+    tmat.set_submatrix(proj_mat);
+    tsf_mat = tmat * tsf_mat;
+    std::vector<Hyperplane> nfaces;
+    OPA_DISP0(proj_mat, proj_planes[i]);
+    for (auto &hp : faces) {
+      auto tmp = proj_mat.evalT(hp.w);
+      Q level_shift = tmp.back() * proj_planes[i].level;
+      tmp.pop_back();
+      Hyperplane new_hp(tmp, hp.level - level_shift);
+      nfaces.push_back(new_hp);
+    }
+    std::swap(faces, nfaces);
+  }
+  return { faces, tsf_mat };
+}
+
 class Polyhedra_VertexRepr {
 public:
+  std::vector<QModule_t> vertices;
+  std::vector<std::vector<int> > faces;
+  std::vector<Hyperplane> faces_hp;
+  std::set<std::vector<int> > seen;
+  std::vector<QModule_t> krows;
+  Matrix<Q> lowdim_map;
+  int n, d;
+  Polytope_ConeRepr cone_repr;
+
+  Polyhedra_VertexRepr() {}
+  Polyhedra_VertexRepr(const std::vector<QModule_t> &vertices) { init(vertices); }
+
   void init(const std::vector<QModule_t> &vertices) {
+    OPA_CHECK0(vertices.size() > 0);
     this->vertices = vertices;
+    this->faces.clear();
+    this->faces_hp.clear();
+    this->seen.clear();
     n = vertices.size();
     d = vertices[0].size();
-    OPA_DISP0(n, d, vertices);
+    Matrix<Q> mx(&QF, n, d);
+    mx.set_rows(vertices | STD_TSFX(x - vertices[0]) | STD_VEC);
+    int subspace_dim = mx.rank(-1, -1);
+    auto sx = mx.solve_eq();
+    OPA_DISP0(sx.ImageBasis, mx.clone().row_echelon_stable(-1, -1), mx.clone().row_echelon());
 
+    krows = sx.KernelBasis.as_rows() | STD_VECT(QModule_t);
+    OPA_DISP0(krows, subspace_dim, n, d);
+    // if (krows.size() > 0) {
+
+    //  OPA_DISP0(sx.ImageBasis);
+    //  OPA_DISP0(krows);
+
+    //  auto cmat = Matrix<Q>::identity(&QF, d);
+    //  REP (i, krows.size()) {
+    //    auto proj_mat = expand_unimodular(&QF, krows[i], 0);
+    //    OPA_DISP0(proj_mat, proj_mat.get_det());
+    //    cmat = proj_mat.get_submatrix(1, 0) * cmat;
+    //  }
+    //  auto nvs = vertices | STD_TSFX(QModule_t(cmat.eval((x - vertices[0]).elems))) | STD_VEC;
+    //  OPA_DISP0(cmat, nvs, vertices);
+    //  return init(nvs);
+    //}
+
+    OPA_DISP0(subspace_dim);
     // Compute faces
-    OR::SubsetSelector<int>(utils::range(0, n).tb(),
-                            [&](const std::vector<int> &sel) {
-                              this->maybe_add_repr(sel);
-                              return OR::SubsetSelectorRes{ false, true };
-                            },
-                            d);
+    OR::SubsetSelector<int>(
+      utils::range(0, n).tb(),
+      [&](const std::vector<int> &sel) {
+        this->maybe_add_repr(sel);
+        return OR::SubsetSelectorRes{ false, true };
+      },
+      subspace_dim);
+
+    if (krows.size() > 0) {
+
+      auto [nfaces, tsf] = compute_poly_proj_faces(
+        this->faces_hp, krows | STD_TSFX(Hyperplane(x, x.dot(vertices[0]))) | STD_VEC);
+      auto relrepr = Polyhedra_RelRepr{ nfaces };
+      auto nvs = relrepr.get_vertices();
+      auto tsfed = vertices | STD_TSFX(tsf.eval(x.elems)) | STD_VEC;
+      auto inv = tsf.inverse();
+      OPA_DISP0(nvs, tsfed);
+      init(nvs);
+      lowdim_map = tsf;
+      return;
+    }
 
     // Compute cones
     std::vector<BitVec> vertex_to_incident_faces(n, BitVec(faces.size()));
@@ -167,11 +312,11 @@ public:
 
     std::vector<std::vector<int> > vertex_to_ray_vertices(n);
     cone_repr.cones.resize(n);
+
     REP (i, n) {
       cone_repr.cones[i].vertex = vertices[i];
       FOR (j, i + 1, n) {
-        BitVec nd =
-          vertex_to_incident_faces[i].andz(vertex_to_incident_faces[j]);
+        BitVec nd = vertex_to_incident_faces[i].andz(vertex_to_incident_faces[j]);
 
         int count = nd.count_set();
         std::vector<QModule_t> incident_hps;
@@ -194,6 +339,7 @@ public:
       OPA_CHECK(cone_repr.cones[i].rays.size() >= d, cone_repr.cones[i]);
     }
 
+    OPA_DISP0(vertex_to_incident_faces);
     REP (i, n) {
       std::vector<pii> ray_vertices;
       REP (j, vertex_to_ray_vertices[i].size())
@@ -202,12 +348,10 @@ public:
     }
   }
 
-  void build_simplicial_decomposition(int vid,
-                                      const std::vector<pii> &ray_vertices) {
+  void build_simplicial_decomposition(int vid, const std::vector<pii> &ray_vertices) {
     if (ray_vertices.size() == d) {
       std::vector<int> ray_ids;
-      for (auto &ray_vertex : ray_vertices)
-        ray_ids.push_back(ray_vertex.second);
+      for (auto &ray_vertex : ray_vertices) ray_ids.push_back(ray_vertex.second);
       cone_repr.cones[vid].simplicial_decomposition.emplace_back(
         PolyhedraSimplicialDecomposition{ ray_ids });
       return;
@@ -225,27 +369,23 @@ public:
 
         // These vertices form a face of the cone. can't
         // use it to split
-        if (this->seen.count(maybe_face_ids))
-          return OR::SubsetSelectorRes{ false, true };
+        if (this->seen.count(maybe_face_ids)) return OR::SubsetSelectorRes{ false, true };
         std::vector<QModule_t> splitv;
         for (auto &e : split_face_vids)
           splitv.push_back(lift_zmodule(cone_repr.cones[vid].rays[e.second]));
         Hyperplane split_hp(splitv, Hyperplane::kLinear);
 
         for (auto &e : ray_vertices) {
-          int status = split_hp.contains_status(
-            lift_zmodule(cone_repr.cones[vid].rays[e.second]));
+          int status = split_hp.contains_status(lift_zmodule(cone_repr.cones[vid].rays[e.second]));
           if (status >= 0) right.push_back(e);
           if (status <= 0) left.push_back(e);
         }
-        if (left.size() < ray_vertices.size() &&
-            right.size() < ray_vertices.size()) {
+        if (left.size() < ray_vertices.size() && right.size() < ray_vertices.size()) {
           return OR::SubsetSelectorRes{ true, true };
         }
         left.clear();
         right.clear();
         return OR::SubsetSelectorRes{ false, true };
-
       },
       d - 1);
 
@@ -261,10 +401,9 @@ public:
     }
 
     for (auto &v : vertex_sel) hp_vertices.push_back(vertices[v]);
-    Hyperplane hp(hp_vertices);
+    Hyperplane hp(hp_vertices, !Hyperplane::kLinear, krows);
 
-    std::vector<int> rem =
-      utils::remove_sorted(utils::range(0, n).tb(), vertex_sel);
+    std::vector<int> rem = utils::remove_sorted(utils::range(0, n).tb(), vertex_sel);
     // OPA_DISP0(rem, vertex_sel, hp_vertices);
 
     std::vector<QModule_t> rem_vertices;
@@ -279,8 +418,7 @@ public:
     maybe_add_face(final_vertex_sel, hp);
   }
 
-  void maybe_add_face(const std::vector<int> &vertex_sel,
-                      const Hyperplane &hp) {
+  void maybe_add_face(const std::vector<int> &vertex_sel, const Hyperplane &hp) {
     std::vector<int> lst = vertex_sel;
     std::sort(ALL(lst));
     if (seen.insert(lst).second) {
@@ -290,101 +428,9 @@ public:
   }
 
   bool contains(const QModule_t &pt) const {
-    return std::all_of(ALL(faces_hp), std::bind(&Hyperplane::contains,
-                                                std::placeholders::_1, pt));
-  }
-
-  std::vector<QModule_t> vertices;
-  std::vector<std::vector<int> > faces;
-  std::vector<Hyperplane> faces_hp;
-  std::set<std::vector<int> > seen;
-  int n, d;
-  Polytope_ConeRepr cone_repr;
-};
-
-template <class U> struct LexCompare {
-  bool operator()(const U &a, const U &b) const {
-    return std::lexicographical_compare(ALL(a), ALL(b));
+    return std::all_of(ALL(faces_hp), std::bind(&Hyperplane::contains, std::placeholders::_1, pt));
   }
 };
-
-class Polyhedra_RelRepr {
-public:
-  void init() {
-    if (is_init) return;
-    is_init = true;
-    OPA_CHECK0(rel_ineq.size() > 0);
-    n = rel_ineq.size();
-    d = rel_ineq[0].dim();
-
-    OPA_TRACE("Finding vertex of polyhedron. ", n, d);
-    // TODO: compute faces directly here, instead of redoing work in
-    // VertexRepr
-    OR::SubsetSelector<int>(utils::range(0, n).tb(),
-                            [&](const std::vector<int> &sel) {
-                              this->maybe_add_vertex(sel);
-                              return OR::SubsetSelectorRes{ false, true };
-                            },
-                            d);
-    OPA_TRACE("Found vertex repr > >", rel_ineq, vertices);
-    std::sort(ALL(vertices), LexCompare<QModule_t>());
-    utils::make_unique(vertices);
-    vertex_repr.init(vertices);
-  }
-
-  void maybe_add_vertex(const std::vector<int> &hps_sel) {
-    Matrix<Q> mat(&QF, d, d);
-    std::vector<Q> pt;
-    REP (i, hps_sel.size()) {
-      mat.set_row(i, rel_ineq[hps_sel[i]].w);
-      pt.emplace_back(rel_ineq[hps_sel[i]].level);
-    }
-    Matrix<Q> imat;
-    if (!mat.invert(&imat)) return;
-    QModule_t ipt(imat.eval(pt));
-
-    for (auto &hp : rel_ineq)
-      if (!hp.contains(ipt)) return;
-    vertices.push_back(ipt);
-    return;
-  }
-
-  const Polyhedra_VertexRepr &get_vertex_repr() {
-    init();
-    return vertex_repr;
-  }
-
-  std::vector<QModule_t> vertices;
-  std::vector<Hyperplane> rel_ineq;
-  int n, d;
-  Polyhedra_VertexRepr vertex_repr;
-
-  bool is_init = false;
-};
-
-Polyhedra_VertexRepr
-compute_poly_proj(const Polyhedra_VertexRepr &polyhedra,
-                  const std::vector<Hyperplane> &proj_planes) {
-
-  std::vector<Hyperplane> hps;
-  Polyhedra_VertexRepr cur = polyhedra;
-  const int dim = polyhedra.d;
-  REP (i, proj_planes.size()) {
-    const int cur_dim = dim - i;
-    auto proj_mat = expand_unimodular(&QF, proj_planes[i].w.elems, cur_dim - 1);
-    Polyhedra_RelRepr next_repr;
-    OPA_DISP0(proj_mat, proj_planes[i]);
-    for (auto &hp : polyhedra.faces_hp) {
-      auto tmp = proj_mat.evalT(hp.w);
-      Q level_shift = tmp.back() * proj_planes[i].level;
-      tmp.pop_back();
-      Hyperplane new_hp(tmp, hp.level - level_shift);
-      next_repr.rel_ineq.push_back(new_hp);
-    }
-    cur = next_repr.get_vertex_repr();
-  }
-  return cur;
-}
 
 class Simplex {
 public:
@@ -403,8 +449,7 @@ public:
   }
 
   bool contains(const QModule_t &x) const {
-    return std::all_of(
-      ALL(hps), std::bind(&Hyperplane::contains, std::placeholders::_1, x));
+    return std::all_of(ALL(hps), std::bind(&Hyperplane::contains, std::placeholders::_1, x));
   }
 
   int n;
@@ -437,8 +482,7 @@ public:
 
   void init(const std::vector<ZModule_t> &rays) {
     Matrix<Z> mat(&Ring_Z, rays[0].elems.size(), rays.size());
-    REP (i, rays.size())
-      mat.setCol(i, rays[i].elems);
+    REP (i, rays.size()) mat.setCol(i, rays[i].elems);
     this->init(mat);
   }
 
@@ -456,8 +500,7 @@ public:
     OPA_CHECK(qmat.left_inverse(&coord_map), mat);
     n = mat.n;
     m = mat.m;
-    REP (i, m)
-      rays.emplace_back(mat.get_col(i).tovec());
+    REP (i, m) rays.emplace_back(mat.get_col(i).tovec());
 
     OPA_CHECK(m <= n, m, n, mat);
 
@@ -484,25 +527,20 @@ public:
     }
   }
 
-  QModule_t get_coords(const ZModule_t &tb) const {
-    return get_coords(lift_zmodule(tb));
-  }
+  QModule_t get_coords(const ZModule_t &tb) const { return get_coords(lift_zmodule(tb)); }
   QModule_t get_coords(const QModule_t &tb) const { return coord_map.eval(tb); }
 
   bool in_scone(const ZModule_t &tb) const {
     auto x = get_coords(tb);
-    return std::all_of(ALL(x.elems), std::bind(&Q::operator>=, QF.getZ(),
-                                               std::placeholders::_1));
+    return std::all_of(ALL(x.elems), std::bind(&Q::operator>=, QF.getZ(), std::placeholders::_1));
   }
 
   bool in_cone(const ZModule_t &tb) const {
     auto x = get_coords(tb);
-    return std::all_of(ALL(x.elems), std::bind(&Q::operator<=, QF.getZ(),
-                                               std::placeholders::_1));
+    return std::all_of(ALL(x.elems), std::bind(&Q::operator<=, QF.getZ(), std::placeholders::_1));
   }
 
-  ZModule_t remap_parallelepiped(const ZModule_t &tb,
-                                 const std::vector<bool> &exclude_face,
+  ZModule_t remap_parallelepiped(const ZModule_t &tb, const std::vector<bool> &exclude_face,
                                  const QModule_t &qs_coord) const {
     QModule_t coords = get_coords(tb) - qs_coord;
 
@@ -520,12 +558,10 @@ public:
       QModule_t final_coords = get_coords(rmp);
       REP (i, final_coords.size()) {
         if (exclude_face[i]) {
-          OPA_CHECK(final_coords[i] > qs_coord[i] &&
-                      final_coords[i] <= qs_coord[i] + QF.getE(),
+          OPA_CHECK(final_coords[i] > qs_coord[i] && final_coords[i] <= qs_coord[i] + QF.getE(),
                     final_coords, rmp, coords, rem, remv);
         } else {
-          OPA_CHECK(final_coords[i] >= qs_coord[i] &&
-                      final_coords[i] < qs_coord[i] + QF.getE(),
+          OPA_CHECK(final_coords[i] >= qs_coord[i] && final_coords[i] < qs_coord[i] + QF.getE(),
                     final_coords, rmp, coords, rem, remv);
         }
       }
@@ -538,15 +574,13 @@ public:
     return list_parallelepiped(QModule_t::zero(n), exclude_face);
   }
 
-  std::vector<ZModule_t>
-  list_parallelepiped(const QModule_t &qshift,
-                      const std::vector<bool> &exclude_face) const {
+  std::vector<ZModule_t> list_parallelepiped(const QModule_t &qshift,
+                                             const std::vector<bool> &exclude_face) const {
 
     std::vector<std::vector<bignum> > ranges;
     REP (i, n) {
       ranges.push_back(
-        utils::Range<bignum>::StepRange(0, utils::get_or(diag, i, bignum(1)), 1)
-          .tb());
+        utils::Range<bignum>::StepRange(0, utils::get_or(diag, i, bignum(1)), 1).tb());
     }
 
     std::vector<bool> mod_exclude_face;
@@ -570,27 +604,24 @@ public:
     fplll::ZZ_mat<mpz_t> fmat;
     fmat.resize(m, n);
     REP (i, n)
-      REP (j, m)
-        fmat(i, j) = *(mpz_t *)W(i, j).get_internal();
+      REP (j, m) fmat(i, j) = *(mpz_t *)W(i, j).get_internal();
 
     int prec = 0;
-    int status = fplll::bkz_reduction(
-      fmat, fplll::BKZ_SLD_RED, fplll::BKZ_DEFAULT, fplll::FT_DEFAULT, prec);
+    int status =
+      fplll::bkz_reduction(fmat, fplll::BKZ_SLD_RED, fplll::BKZ_DEFAULT, fplll::FT_DEFAULT, prec);
     OPA_CHECK0(status == fplll::RED_SUCCESS);
     OPA_DISP0(W, mat);
 
     Matrix<Z> res(&Ring_Z, m, n);
     REP (i, m) {
-      REP (j, n)
-        fmat(i, j).get_mpz(*(mpz_t *)res(j, i).get_internal());
+      REP (j, n) fmat(i, j).get_mpz(*(mpz_t *)res(j, i).get_internal());
     }
     return res;
   }
 
   bool is_on_cone_boundary(const ZModule_t &pt) const {
-    return std::any_of(
-      ALL(planes),
-      std::bind(&Hyperplane::is_on, std::placeholders::_1, lift_zmodule(pt)));
+    return std::any_of(ALL(planes),
+                       std::bind(&Hyperplane::is_on, std::placeholders::_1, lift_zmodule(pt)));
   }
 
   std::pair<bool, ZModule_t> find_w() const {
@@ -643,8 +674,8 @@ public:
     }
   }
 
-  OPA_DECL_COUT_OPERATOR2(SimplicialCone, a.n, a.m, a.rays,
-                          a.parallelepiped_count, a.diag, a.mat, a.planes);
+  OPA_DECL_COUT_OPERATOR2(SimplicialCone, a.n, a.m, a.rays, a.parallelepiped_count, a.diag, a.mat,
+                          a.planes);
 
   mutable std::vector<Hyperplane> planes;
   int n, m;
@@ -764,8 +795,8 @@ public:
 
     Z nextc = 0;
     FOR (j, 1, curpw + 1) {
-      Z term = ch.cnk(curpw + 1, j + 1) *
-               (ch.fact[curpw] / ch.fact[curpw + 1 - j]) * clist[curpw - j];
+      Z term =
+        ch.cnk(curpw + 1, j + 1) * (ch.fact[curpw] / ch.fact[curpw + 1 - j]) * clist[curpw - j];
       nextc += term * sgn;
       sgn *= -1;
     }
@@ -786,8 +817,7 @@ enum BarvinokErrType {
 ZModule_t generate_lambda_rand(int dim) {
   bignum gen_bound = bignum(2).lshift(30);
   ZModule_t cnd;
-  REP (i, dim)
-    cnd.elems.push_back(gen_bound.rand_signed());
+  REP (i, dim) cnd.elems.push_back(gen_bound.rand_signed());
   return cnd;
 }
 
@@ -834,13 +864,11 @@ public:
 
   ResidueCone &active() { return data.cones.back(); }
 
-  void start_cone(const SimplicialCone &cone, int sgn,
-                  const ZModule_t &vertex) {
+  void start_cone(const SimplicialCone &cone, int sgn, const ZModule_t &vertex) {
     if (online_mode) {
       OPA_CHECK0(lambda_set);
       std::vector<ZModule_t> dirs;
-      REP (i, cone.m)
-        dirs.emplace_back(cone.mat.get_col(i));
+      REP (i, cone.m) dirs.emplace_back(cone.mat.get_col(i));
       cone_ctx.dirs_poly = compute_dirs_poly(dirs, sgn);
       cone_ctx.points_poly = Q_x.getZ();
       cone_ctx.vertex_dot = vertex.dot(selected_lambda);
@@ -849,8 +877,7 @@ public:
       data.cones.emplace_back();
       active().vertex = vertex;
       active().sgn = sgn;
-      REP (i, cone.m)
-        active().dirs.emplace_back(cone.mat.get_col(i));
+      REP (i, cone.m) active().dirs.emplace_back(cone.mat.get_col(i));
     }
   }
 
@@ -894,8 +921,7 @@ public:
     return TaylorExp(val).get_as_poly(dim);
   }
 
-  P_Q compute_dirs_poly(const std::vector<ZModule_t> &dirs,
-                        int cone_sgn) const {
+  P_Q compute_dirs_poly(const std::vector<ZModule_t> &dirs, int cone_sgn) const {
     Z denom = cone_sgn;
     P_Q final_p = Q_x.getE();
     // why is denom out?
@@ -940,8 +966,7 @@ public:
     lambda_set = true;
   }
 
-  bool push_cone(const SimplicialCone &cone, int sgn,
-                 const std::vector<ZModule_t> &cone_points,
+  bool push_cone(const SimplicialCone &cone, int sgn, const std::vector<ZModule_t> &cone_points,
                  const ZModule_t &vertex) {
     start_cone(cone, sgn, vertex);
 
@@ -1002,8 +1027,7 @@ public:
     ExcludeFace_t exclude_face;
     int sgn;
     int depth;
-    OPA_DECL_COUT_OPERATOR2(RecData, a.vertex, a.cone, a.exclude_face, a.sgn,
-                            a.depth);
+    OPA_DECL_COUT_OPERATOR2(RecData, a.vertex, a.cone, a.exclude_face, a.sgn, a.depth);
   };
 
   struct Result {
@@ -1056,8 +1080,7 @@ public:
       data.cone.compute_shift_vertex(data.vertex, &zvertex, &qs_shift);
 
       auto lst = data.cone.list_parallelepiped(qs_shift, data.exclude_face);
-      OPA_DISP("Leaf enumeration >> ", data.sgn, data.exclude_face, data.cone,
-               zvertex, qs_shift);
+      OPA_DISP("Leaf enumeration >> ", data.sgn, data.exclude_face, data.cone, zvertex, qs_shift);
       if (!residue_helper.push_cone(data.cone, data.sgn, lst, zvertex)) {
         descent_data.residue_res = residue_helper.res;
         return false;
@@ -1074,13 +1097,10 @@ public:
       data.cone.compute_planes();
 
       REP (i, m) {
-        hp_status.push_back(
-          data.cone.planes[i].contains_status(lift_zmodule(w)));
-        OPA_DISP0(
-          data.cone.planes[i].contains_status(lift_zmodule(data.cone.rays[i])));
+        hp_status.push_back(data.cone.planes[i].contains_status(lift_zmodule(w)));
+        OPA_DISP0(data.cone.planes[i].contains_status(lift_zmodule(data.cone.rays[i])));
       }
-      OPA_DISP("Splitting ", data.cone, w, hp_status, data.exclude_face,
-               data.cone.planes);
+      OPA_DISP("Splitting ", data.cone, w, hp_status, data.exclude_face, data.cone.planes);
       // a,b,false: exclude face when drop ray a, then ray b
       // a,b,true: exclude face face intersection missing (ray a and w)
       algo::Sat2<std::tuple<int, int, bool> > sat2;
@@ -1091,29 +1111,25 @@ public:
         if (hp_status[ignorev] == 0) continue;
         int nsgn = hp_status[ignorev] * data.sgn;
         next_sgns[ignorev] = nsgn;
-        exclude_w[ignorev] =
-          (data.exclude_face[ignorev] ^ (hp_status[ignorev] == -1));
+        exclude_w[ignorev] = (data.exclude_face[ignorev] ^ (hp_status[ignorev] == -1));
 
         REP (j, m) {
           if (j == ignorev || hp_status[j] == 0) continue;
 
-          sat2 += sat2.term(ignorev, j, true) ==
-                  (sat2.term(ignorev, j, false) || exclude_w[ignorev]);
+          sat2 +=
+            sat2.term(ignorev, j, true) == (sat2.term(ignorev, j, false) || exclude_w[ignorev]);
           if (j < ignorev) {
             // face without ray ignorev,j should be:
             // ++ / -- -> only 1
             // +- -> both set or both unset
-            sat2 +=
-              (sat2.term(ignorev, j, false) ^ sat2.term(j, ignorev, false)) ==
-              (hp_status[ignorev] == hp_status[j]);
+            sat2 += (sat2.term(ignorev, j, false) ^ sat2.term(j, ignorev, false)) ==
+                    (hp_status[ignorev] == hp_status[j]);
 
             // Number of time the face-face intersection is counted should not
             // change.
             bool target = !(data.exclude_face[j] || data.exclude_face[ignorev]);
-            sat2 += (!sat2.term(j, ignorev, true) * (s8)hp_status[ignorev] +
-                     !sat2.term(ignorev, j, true)) *
-                      (s8)hp_status[j] ==
-                    target;
+            sat2 += (!sat2.term(j, ignorev, true) * (s8)hp_status[j] +
+                     !sat2.term(ignorev, j, true) * (s8)hp_status[ignorev]) == target;
           }
         }
       }
@@ -1181,11 +1197,10 @@ public:
     }
     OPA_DISP("Normed rays >> ", normed_rays, cone.rays);
 
-    std::vector<PolyhedraSimplicialDecomposition> decompositions =
-      cone.simplicial_decomposition;
+    std::vector<PolyhedraSimplicialDecomposition> decompositions = cone.simplicial_decomposition;
     if (decompositions.empty()) {
-      decompositions.push_back(PolyhedraSimplicialDecomposition{
-        utils::range(0, normed_rays.size()).tb() });
+      decompositions.push_back(
+        PolyhedraSimplicialDecomposition{ utils::range(0, normed_rays.size()).tb() });
     }
 
     bool first = true;
@@ -1294,8 +1309,7 @@ public:
 
       cone.vertex = simplex.pts[i];
       REP (j, m)
-        if (i != j)
-          cone.rays.push_back(force_zmodule(simplex.pts[j] - simplex.pts[i]));
+        if (i != j) cone.rays.push_back(force_zmodule(simplex.pts[j] - simplex.pts[i]));
       polytope.cones.push_back(cone);
     }
     return this->solve(polytope);

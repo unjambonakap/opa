@@ -1,6 +1,6 @@
 #pragma once
 
-#include <glib/gtl/map_util.h>
+#include <opa/utils/map_util.h>
 #include <opa/algo/graph.h>
 #include <opa/algo/graph_util.h>
 #include <opa/utils/hash.h>

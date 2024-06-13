@@ -4,7 +4,7 @@ OPA_NM_MATH_GAME
 
 PointVec compute_sphere_points(double radius, double z, int n) {
   PointVec res(n);
-  double angle = 2 * PI / n;
+  double angle = 2 * OPA_PI / n;
   double r = sqrt(radius * radius - z * z);
   REP (i, n) {
     double xg1 = cos(i * angle);
@@ -19,7 +19,7 @@ PointVec compute_sphere_points(double radius, double z, int n) {
 void triangularize_sphere_strip(FaceCollection *fc, double radius, int ntr,
                                 double zl, double zh) {
 
-  double angle = 2 * PI / (ntr / 2);
+  double angle = 2 * OPA_PI / (ntr / 2);
   double rl = sqrt(radius * radius - zl * zl);
   double rh = sqrt(radius * radius - zh * zh);
   PointVec ll, lh;
@@ -35,7 +35,7 @@ void triangularize_sphere_strip(FaceCollection *fc, double radius, int ntr,
 
 void triangularize_sphere_fan(FaceCollection *fc, double radius, int ntr,
                               double zfix, double zfan) {
-  double angle = 2 * PI / (ntr / 2);
+  double angle = 2 * OPA_PI / (ntr / 2);
   PointVec tb = compute_sphere_points(radius, zfan, ntr);
   Pos pfix(0, 0, zfix);
   tb.push_back(tb[0]);
@@ -47,11 +47,11 @@ void triangularize_sphere(FaceCollection *fc, double radius, int ntr) {
   int ntr_per_strip = nstrips + 1 & ~1; // make it even
 
   double r2 = radius * radius;
-  double area = 4 * PI * r2;
+  double area = 4 * OPA_PI * r2;
 
   double curz = radius;
   double area_per_strip = area / nstrips;
-  double coeff = 2 * PI * radius;
+  double coeff = 2 * OPA_PI * radius;
 
   if (1) {
     double mul = 2 * radius / nstrips;

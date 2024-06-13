@@ -8,6 +8,7 @@
 #include <opa/math/common/Ring.h>
 #include <opa/math/common/UtilsPoly.h>
 #include <opa/math/common/base.h>
+#include <opa/utils/range.h>
 #include <opa_common_base.h>
 #include <span>
 
@@ -92,18 +93,18 @@ public:
     return v;
   }
 
-  std::unique_ptr<FFTProvider<T> > make_fft(int npw) const {
-    return std::unique_ptr<FFTProvider<T> >(new FFT2Dispatcher<T>(this, npw));
+  std::unique_ptr<IFFTProvider<T> > make_fft(int npw) const {
+    return std::unique_ptr<IFFTProvider<T> >(new FFT2Dispatcher<T>(this, npw));
   }
 
-  std::unique_ptr<FFTProvider<TE> > make_ffte_dispatcher(int npw) const {
+  std::unique_ptr<IFFTProvider<TE> > make_ffte_dispatcher(int npw) const {
     auto tmp = [&](int npw_req) { return this->make_fft_provider(npw_req).release(); };
-    return std::unique_ptr<FFTProvider<TE> >(new FFT2Dispatcher<TE>(npw, tmp));
+    return std::unique_ptr<IFFTProvider<TE> >(new FFT2Dispatcher<TE>(npw, tmp));
   }
 
-  std::unique_ptr<FFTProvider<TE> > make_fft_provider(int npw) const {
+  std::unique_ptr<IFFTProvider<TE> > make_fft_provider(int npw) const {
     auto tmp = new CRTFieldFFTProvider<TE, N>(*this, npw);
-    return std::unique_ptr<FFTProvider<TE> >(tmp);
+    return std::unique_ptr<IFFTProvider<TE> >(tmp);
   }
 
 #define MAKE_ZARY_OP(op_name)                                                                      \
@@ -199,7 +200,7 @@ public:
   T ifact(u32 i) const { return ring.inv(fact(i)); }
   T fact(u32 i) const {
     while (_fact.size() <= i) {
-      _fact.pb(ring.mul(_fact.back(), ring.importu32(_fact.size() + 1)));
+      _fact.pb(ring.mul(_fact.back(), ring.importu32(_fact.size())));
     }
     return _fact[i];
   }
@@ -207,21 +208,37 @@ public:
 
 template <class T> class FastPoly {
 
-  const PolyRing<T> &pr;
-  const FFTProvider<T> &provider;
-  const FactProvider<T> &fact_provider;
+  const IFFTProvider<T> &provider;
+  std::unique_ptr<FactProvider<T> > owned_fact_provider;
 
 public:
+  const FactProvider<T> *fact_provider;
   typedef Poly<T> PT;
   typedef FastPoly<T> This;
+  const PolyRing<T> &pr;
 
   const Ring<T> &ring() const { return *pr.underlying_ring(); }
 
-  FastPoly(const PolyRing<T> &pr, const FFTProvider<T> &provider)
-      : pr(pr), provider(provider), fact_provider(*pr.underlying_ring()) {}
+  FastPoly(const PolyRing<T> &pr, const IFFTProvider<T> &provider) : pr(pr), provider(provider) {
+    owned_fact_provider = std::make_unique<FactProvider<T> >(*pr.underlying_ring());
+    fact_provider = owned_fact_provider.get();
+  }
 
   PT mul(const PT &a, const PT &b) const {
+    if (a.size() == 0 || b.size() == 0) return pr.getZ();
     return pr.import_vec(provider.mul(a.to_vec(), b.to_vec()));
+  }
+
+  PT tower_prod(std::vector<PT> lst) const {
+    if (lst.size() == 1) return lst[0];
+    auto mid = lst.begin() + lst.size() / 2;
+    return this->mul(tower_prod(V_t(PT)(lst.begin(), mid)), tower_prod(V_t(PT)(mid, lst.end())));
+  }
+
+  PT pow(const PT &a, int pw) const {
+    auto pts = provider.fft(a.to_vec(a.deg() * pw + 1));
+    auto fa = pts | STD_TSFX(fact_provider->ring.faste(x, pw)) | STD_VEC;
+    return pr.import_vec(provider.ifft(fa));
   }
 
   PT mulxmod(const PT &a, const PT &b, int xpw) const { return pr.resize(this->mul(a, b), xpw); }
@@ -229,8 +246,8 @@ public:
   PT invxmod(const PT &x, int n) const { return _invxmod(x, log2_high_bit(n - 1) + 1).resize(n); }
 
   PT _invxmod(const PT &x, int degpw) const {
-    OPA_CHECK0(ring().isE(x[0]));
-    if (degpw == 0) return pr.getE();
+    OPA_CHECK0(ring().isInv(x[0]));
+    if (degpw == 0) return pr.constant(ring().inv(x[0]));
     int ndegpw = degpw - 1;
     int l = 1 << ndegpw;
     PT xl = pr.resize(x, l);
@@ -357,6 +374,7 @@ public:
   std::vector<T> eval(const PT &a, const std::vector<T> &pts) const {
     if (pts.size() == 0) return {};
     if (pts.size() == 1) return { a(pts[0]) };
+    if (a.deg() == 0) return std::vector<T>(pts.size(), a.get_safe(0));
 
     MultiEvaluator mev(*this, pts);
     mev.solve(a);
@@ -379,11 +397,26 @@ public:
     return res;
   }
 
+  PT exp2normal(int n) const {
+    std::vector<T> res(n);
+    REP (i, n) res[i] = fact_provider->fact(i);
+    return pr.import_vec(res);
+  }
+
+  PT normal2exp(int n) const {
+    std::vector<T> res(n);
+    REP (i, n) res[i] = fact_provider->ifact(i);
+    return pr.import_vec(res);
+  }
+
+  PT normal2exp(const PT &p) const { return pr.pointwise_mul(p, normal2exp(p.size())); }
+  PT exp2normal(const PT &p) const { return pr.pointwise_mul(p, exp2normal(p.size())); }
+
   T exp_eval(const PT &p, int v) const {
     auto x = p.get_safe(v);
 
     if (ring().isZ(x)) return x;
-    return ring().mul(x, fact_provider.fact(v));
+    return ring().mul(x, fact_provider->fact(v));
   }
 
   PT exp(const PT &p, int n) const {
@@ -459,5 +492,24 @@ public:
     return res;
   }
 };
+
+template <class T>
+std::vector<T> partial_fraction_expansion(const opa::math::common::FastPoly<T> &fp,
+                                          const Poly<T> &target, const std::vector<T> &roots) {
+  // ret ki, ki/(x-ri) = target
+
+  auto gfp = fp.ring();
+  T prod = QQ::fold_left(roots, (T)1, STD_FUNCXY(gfp.mul(x, gfp.neg(y))));
+
+  auto qinv =
+    fp.interpolate(LQ::concat(roots, STD_SINGLEV(T(0))) | STD_VEC,
+                   LQ::concat(STD_REPEAT((T)0, roots.size()), STD_SINGLEV(prod)) | STD_VEC);
+  auto qd = qinv.derivate();
+  auto qde = fp.eval(qd, roots);
+  auto te = fp.eval(target, roots);
+  auto tmp = LQ::zip(te, qde) | STD_TSFTUPLE(gfp.div(p0, p1)) | STD_VEC;
+
+  return tmp;
+}
 
 OPA_NM_MATH_COMMON_END

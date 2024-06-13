@@ -21,6 +21,7 @@ class bignum {
 public:
   static bignum identity() { return bignum(1); }
   static bignum froms32(s32 x);
+  static bignum froms64(s64 x);
   static bignum fromu64(u64 x);
   static bignum fromu32(u32 x);
   static bignum fromstr(const std::string &b, int base = 16) {

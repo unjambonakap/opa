@@ -3,7 +3,7 @@
 OPA_NAMESPACE_DECL3(opa, math, common)
 
 void GF_pBN::init(const bignum &n) {
-  Field<bignum>::init(n, n);
+  GF_pT<bignum>::init(n, n);
 }
 
 bignum GF_pBN::mul(const bignum &a, const bignum &b) const {

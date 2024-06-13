@@ -404,7 +404,7 @@ FaceCollection &FaceCollection::add_box(const BoxSpec &box) {
   return *this;
 }
 
-FaceCollection &FaceCollection::load_stl_from_data(glib::StringPiece data) {
+FaceCollection &FaceCollection::load_stl_from_data(std::string_view data) {
   utils::BufferReader reader(data);
   reader.get(80);
   u32 ntr = reader.read_u32();
@@ -425,7 +425,7 @@ FaceCollection &FaceCollection::load_stl_from_data(glib::StringPiece data) {
   return *this;
 }
 
-FaceCollection &FaceCollection::load_stl(glib::StringPiece filename) {
+FaceCollection &FaceCollection::load_stl(std::string_view filename) {
   std::string content = utils::read_file(filename);
   return load_stl_from_data(content);
 }

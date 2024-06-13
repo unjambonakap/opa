@@ -12,18 +12,17 @@ using namespace std;
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 
-#define DO_MPZ_OP(op, res)                                                     \
-  {                                                                            \
-    bignum res;                                                                \
-    op;                                                                        \
-    return res;                                                                \
+#define DO_MPZ_OP(op, res)                                                                         \
+  {                                                                                                \
+    bignum res;                                                                                    \
+    op;                                                                                            \
+    return res;                                                                                    \
   }
 
 struct MpzWrap : public __mpz_struct {};
 struct MpzRandState : public __gmp_randstate_struct {};
 
 MpzRandState *g_bignum_rand_state = 0;
-
 
 void bignum_init(int seed) {
   g_bignum_rand_state = new MpzRandState();
@@ -36,6 +35,8 @@ bignum bignum::froms32(s32 x) {
   mpz_set_si(a.a, x);
   return a;
 }
+
+bignum bignum::froms64(s64 x) { return bignum(x); }
 
 bignum bignum::fromu32(u32 x) {
   bignum a;
@@ -64,9 +65,7 @@ bignum::bignum(s64 u) {
   }
 }
 
-bignum bignum::fromu64(u64 x) {
-  return bignum::fromu32(x) | bignum::fromu32(x >> 32) << 32;
-}
+bignum bignum::fromu64(u64 x) { return bignum::fromu32(x) | bignum::fromu32(x >> 32) << 32; }
 
 void bignum::init() {
   a = new MpzWrap;
@@ -123,9 +122,7 @@ bignum bignum::fromrbytes(opa::stolen::StringRef b) {
   return frombytes(rb);
 }
 
-void bignum::loadstr(const char *b, int base) {
-  bad = mpz_set_str(a, b, base) == -1;
-}
+void bignum::loadstr(const char *b, int base) { bad = mpz_set_str(a, b, base) == -1; }
 
 bignum bignum::operator+(const bignum &b) const { return add(b); }
 
@@ -168,29 +165,17 @@ bignum bignum::lshift(u32 v) const {
 
 bignum bignum::modplus(const bignum &b) const { return (*this % b + b) % b; }
 
-bignum bignum::mod(const bignum &b) const {
-  DO_MPZ_OP(mpz_fdiv_r(res.a, a, b.a), res);
-}
+bignum bignum::mod(const bignum &b) const { DO_MPZ_OP(mpz_fdiv_r(res.a, a, b.a), res); }
 
-void bignum::ediv(const bignum &b, bignum *q, bignum *r) const {
-  mpz_fdiv_qr(q->a, r->a, a, b.a);
-}
+void bignum::ediv(const bignum &b, bignum *q, bignum *r) const { mpz_fdiv_qr(q->a, r->a, a, b.a); }
 
-bignum bignum::mul(const bignum &b) const {
-  DO_MPZ_OP(mpz_mul(res.a, a, b.a), res);
-}
+bignum bignum::mul(const bignum &b) const { DO_MPZ_OP(mpz_mul(res.a, a, b.a), res); }
 
-bignum bignum::add(const bignum &b) const {
-  DO_MPZ_OP(mpz_add(res.a, a, b.a), res);
-}
+bignum bignum::add(const bignum &b) const { DO_MPZ_OP(mpz_add(res.a, a, b.a), res); }
 
-bignum bignum::sub(const bignum &b) const {
-  DO_MPZ_OP(mpz_sub(res.a, a, b.a), res);
-}
+bignum bignum::sub(const bignum &b) const { DO_MPZ_OP(mpz_sub(res.a, a, b.a), res); }
 
-bignum bignum::div(const bignum &b) const {
-  DO_MPZ_OP(mpz_fdiv_q(res.a, a, b.a), res);
-}
+bignum bignum::div(const bignum &b) const { DO_MPZ_OP(mpz_fdiv_q(res.a, a, b.a), res); }
 
 bignum bignum::sqrt() const { DO_MPZ_OP(mpz_sqrt(res.a, a), res); }
 
@@ -219,9 +204,7 @@ u32 bignum::get_bit(u32 pos) const { return mpz_tstbit(a, pos); }
 
 void bignum::disp(int base) const { std::cout << str(base) << std::endl; }
 
-bignum bignum::gcd(const bignum &b) const {
-  DO_MPZ_OP(mpz_gcd(res.a, a, b.a), res);
-}
+bignum bignum::gcd(const bignum &b) const { DO_MPZ_OP(mpz_gcd(res.a, a, b.a), res); }
 
 bignum bignum::egcd(const bignum &b, bignum &u, bignum &v) const {
   DO_MPZ_OP(mpz_gcdext(res.a, u.a, v.a, a, b.a), res);
@@ -230,7 +213,7 @@ bignum bignum::egcd(const bignum &b, bignum &u, bignum &v) const {
 void bignum::ssqrt() { mpz_sqrt(a, a); }
 
 bignum bignum::rand() const {
-  OPA_CHECK0(g_bignum_rand_state!=0);
+  OPA_CHECK0(g_bignum_rand_state != 0);
   DO_MPZ_OP(mpz_urandomm(res.a, g_bignum_rand_state, a), res);
 }
 
@@ -289,25 +272,17 @@ bignum bignum::inv(const bignum &n) const {
   return u;
 }
 
-bignum bignum::faste(const bignum &p, const bignum &mod) const {
-  return t_faste(*this, p, mod);
-}
+bignum bignum::faste(const bignum &p, const bignum &mod) const { return t_faste(*this, p, mod); }
 
 bignum bignum::operator|(const bignum &b) const { return or_(b); }
 bignum bignum::operator^(const bignum &b) const { return xor_(b); }
 bignum bignum::operator&(const bignum &b) const { return and_(b); }
 
-bignum bignum::or_(const bignum &b) const {
-  DO_MPZ_OP(mpz_ior(res.a, a, b.a), res);
-}
+bignum bignum::or_(const bignum &b) const { DO_MPZ_OP(mpz_ior(res.a, a, b.a), res); }
 
-bignum bignum::xor_(const bignum &b) const {
-  DO_MPZ_OP(mpz_xor(res.a, a, b.a), res);
-}
+bignum bignum::xor_(const bignum &b) const { DO_MPZ_OP(mpz_xor(res.a, a, b.a), res); }
 
-bignum bignum::and_(const bignum &b) const {
-  DO_MPZ_OP(mpz_and(res.a, a, b.a), res);
-}
+bignum bignum::and_(const bignum &b) const { DO_MPZ_OP(mpz_and(res.a, a, b.a), res); }
 
 bignum bignum::abs() const { DO_MPZ_OP(mpz_abs(res.a, a), res); }
 

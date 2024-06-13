@@ -34,7 +34,7 @@ bool testPrime(const bignum &n);
 void initMathCommon(int seed = -1);
 bool isPrimeDB(u32 a);
 u32 nextPrimeSmall(u32 a);
-u32 u32_faste(u32 a, u32 p, u32 mod);
+u64 u32_faste(u32 a, u32 p, u32 mod);
 u32 u32_faste(u32 a, u32 p);
 bignum next_prime(const bignum &n);
 

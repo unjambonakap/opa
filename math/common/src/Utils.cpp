@@ -27,12 +27,13 @@ int bitcount_tb[1 << BITCOUNT_BLK];
 std::vector<u32> pl;
 
 void init_primes(int bound) {
-  isc = new u32[bound / 32];
-  memset(isc, 0, sizeof(isc[0]) * (bound / 32));
+  int sz = bound / 32 + 1;
+  isc = new u32[sz];
+  memset(isc, 0, sizeof(isc[0]) * (sz));
   set_isc(0);
   set_isc(1);
   u32 ub = sqrt(bound) + 10;
-  if (pl.size()>0) return;
+  if (pl.size() > 0) return;
   for (u32 i = 2; i < bound; ++i)
     if (!get_isc(i)) {
       pl.push_back(i);
@@ -43,8 +44,7 @@ void init_primes(int bound) {
 
 void initMathCommon(int seed) {
   bitcount_tb[0] = 0;
-  FOR (i, 1, 1 << BITCOUNT_BLK)
-    bitcount_tb[i] = bitcount_tb[i >> 1] + (i & 1);
+  FOR (i, 1, 1 << BITCOUNT_BLK) bitcount_tb[i] = bitcount_tb[i >> 1] + (i & 1);
 
   if (seed == -1) seed = time(0);
   rng.seed(seed);
@@ -131,7 +131,8 @@ bool testPrime(const bignum &n) {
   init_primes(kSmallPrimeBound);
   int bound = std::min<int>(n_small_prime_test, pl.size());
 
-  REP (i, bound) if (n % pl[i] == 0) return false;
+  REP (i, bound)
+    if (n % pl[i] == 0) return false;
   if (!testPrimeFermat(n, n_rm_tries)) return false;
   return testPrimeRM(n, n_rm_tries);
 }
@@ -179,8 +180,8 @@ BGFactors factor_large(const bignum &a) {
   return res;
 }
 
-u32 u32_faste(u32 a, u32 p, u32 mod) {
-  u32 x = 1;
+u64 u32_faste(u32 a, u32 p, u32 mod) {
+  u64 x = 1;
   for (; p; p >>= 1, a = (u64)a * a % mod)
     if (p & 1) x = (u64)x * a % mod;
   return x;
@@ -235,8 +236,7 @@ bignum next_prime(const bignum &n) {
   return v;
 }
 
-bignum crt_coprime(const std::vector<std::pair<bignum, bignum> > &lst,
-                   const bignum &mod) {
+bignum crt_coprime(const std::vector<std::pair<bignum, bignum> > &lst, const bignum &mod) {
 
   bignum res = 0;
   bignum n = 1;

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <opa/predef.h>
 #include <opa/math/common/Field.h>
 #include <opa/math/common/FractionField.h>
 #include <opa/math/common/bignum.h>
 #include <opa/math/common/float.h>
+#include <opa/predef.h>
 
 OPA_NM_MATH_COMMON
 
@@ -24,12 +24,30 @@ public:
   virtual T import(const T &a) const override { return a; }
   virtual T importu32(u32 a) const override { return T((s32)a); }
 
+  virtual T abs(const T &a) const override { return std::abs(a); }
+  virtual T sqrt(const T &a) const override {
+
+    if constexpr (std::is_same<std::complex<U>, T>::value) {
+      OPA_CHECK0(false);
+
+    } else {
+
+      return std::sqrt(a);
+    }
+  }
+
+  virtual int sel_for_stab(const std::vector<T> &tb) const override {
+    return std::max_element(ALL(tb),
+                            [&](auto a, auto b) { return this->lt(this->abs(a), this->abs(b)); }) -
+           tb.begin();
+  }
   virtual T getZ() const override { return T(0); }
   virtual T getE() const override { return T(1); }
   virtual T getRandRaw() const override {
     OPA_CHECK0(false);
     return T(0);
   }
+  virtual bool lt(const T &a, const T &b) const override { return a < b; }
   virtual T getRand() const override { return FloatUtil::get_rand_uni<T>(T(0), T(1)); }
   virtual bool eq(const T &a, const T &b) const override { return std::abs(a - b) <= eps; }
   virtual T getNthRoot(u32 n) const override {
@@ -51,6 +69,5 @@ typedef RealField<Float> RealF;
 typedef FractionField<bignum> RealBG;
 typedef ComplexField<Float> ComplexF;
 typedef ComplexField<double> ComplexDouble;
-
 
 OPA_NM_MATH_COMMON_END

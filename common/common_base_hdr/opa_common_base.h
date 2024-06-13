@@ -5,12 +5,16 @@
 
 #include "config.h"
 
+#ifndef OPA_HEX
+#define OPA_HEX 1
+#endif
+
 #ifndef OPA_HAS_STACKTRACE
 #define OPA_HAS_STACKTRACE 1
 #endif
 
 #define COMMA ,
-#define PI std::acos(double(-1.))
+#define OPA_PI std::acos(double(-1.))
 #define OPA_MATH opa::math::common
 #define OPA_CRYPTO opa::crypto
 #define OPA_THREADING opa::threading
@@ -20,7 +24,7 @@
 #define BIT_BLOCK(a, b) ((a)[(b) / sizeof((a)[0]) / 8])
 #define BIT_B(a, b) (1ull << ((b) & ((sizeof((a)[0]) * 8) - 1)))
 
-#define OPA_BITSIGN(b) ((b)&1 ? 1 : -1)
+#define OPA_BITSIGN(b) ((b) & 1 ? 1 : -1)
 #define OPA_SIGN(b) ((b) < 0 ? -1 : 1)
 
 #define BIT0 0x01
@@ -31,7 +35,7 @@
 #define BIT5 0x20
 #define BIT6 0x40
 #define BIT7 0x80
-#define GETB(X, p) ((X) >> (p)&1)
+#define GETB(X, p) ((X) >> (p) & 1)
 #define SETB(X, p, v) ((X) = (((X) & (~(1 << (p)))) | ((v) << (p))))
 #define SET0(X, p) ((X) &= ~MASK(p))
 #define SET1(X, p) ((X) |= MASK(p))
@@ -193,6 +197,19 @@
     return os;                                                                                     \
   }
 
+#define OPA_DECL_CIN_OPERATOR(CL, blk, ...)                                                        \
+  friend std::istream &operator>>(std::istream &is, CL &a) {                                       \
+    is >> RAW_OPA_CIN_VARS(__VA_ARGS__);                                                           \
+    { blk };                                                                                       \
+    return is;                                                                                     \
+  }
+
+#define OPA_DECL_CIN_OPERATOR2(CL, ...)                                                            \
+  friend std::istream &operator>>(std::istream &is, CL &a) {                                       \
+    is >> RAW_OPA_CIN_VARS(__VA_ARGS__);                                                           \
+    return is;                                                                                     \
+  }
+
 #define OPA_NAMESPACE_DECL1(a) namespace a {
 
 #define OPA_NAMESPACE_DECL1_END }
@@ -235,6 +252,21 @@
 #define OPA_NAMESPACE_END(...) RAW_OPA_NAMESPACE_END(__VA_ARGS__)
 #endif
 
+#define RAW_OPA_CIN_VARS(...) OPA_DISPATCH(_OPA_CIN_VAR, __VA_ARGS__)(__VA_ARGS__)
+
+#define _OPA_CIN_VAR1(a) (a)
+#define _OPA_CIN_VAR2(a, b) _OPA_CIN_VAR1(a) >> _OPA_CIN_VAR1(b)
+#define _OPA_CIN_VAR3(a, b, c) _OPA_CIN_VAR2(a, b) >> _OPA_CIN_VAR1(c)
+#define _OPA_CIN_VAR4(a, b, c, d) _OPA_CIN_VAR3(a, b, c) >> _OPA_CIN_VAR1(d)
+#define _OPA_CIN_VAR5(a, b, c, d, e) _OPA_CIN_VAR4(a, b, c, d) >> _OPA_CIN_VAR1(e)
+#define _OPA_CIN_VAR6(a, b, c, d, e, f) _OPA_CIN_VAR5(a, b, c, d, e) >> _OPA_CIN_VAR1(f)
+#define _OPA_CIN_VAR7(a, b, c, d, e, f, g) _OPA_CIN_VAR6(a, b, c, d, e, f) >> _OPA_CIN_VAR1(g)
+#define _OPA_CIN_VAR8(a, b, c, d, e, f, g, h) _OPA_CIN_VAR7(a, b, c, d, e, f, g) >> _OPA_CIN_VAR1(h)
+#define _OPA_CIN_VAR9(a, b, c, d, e, f, g, h, i)                                                   \
+  _OPA_CIN_VAR8(a, b, c, d, e, f, g, h) >> _OPA_CIN_VAR1(i)
+#define _OPA_CIN_VAR10(a, b, c, d, e, f, g, h, i, j)                                               \
+  _OPA_CIN_VAR9(a, b, c, d, e, f, g, h, i) >> _OPA_CIN_VAR1(j)
+
 #define _OPA_DISP_VAR1(a) #a << "=" << (a) << ","
 #define _OPA_DISP_VAR2(a, b) _OPA_DISP_VAR1(a) << _OPA_DISP_VAR1(b)
 #define _OPA_DISP_VAR3(a, b, c) _OPA_DISP_VAR2(a, b) << _OPA_DISP_VAR1(c)
@@ -250,7 +282,8 @@
   _OPA_DISP_VAR9(a, b, c, d, e, f, g, h, i) << _OPA_DISP_VAR1(j)
 
 #define RAW_OPA_DISP_VARS(...)                                                                     \
-  std::hex << std::showbase << OPA_DISPATCH(_OPA_DISP_VAR, __VA_ARGS__)(__VA_ARGS__)
+  (OPA_HEX ? std::hex : std::dec) << (OPA_HEX ? std::showbase : std::noshowbase)                   \
+                                  << OPA_DISPATCH(_OPA_DISP_VAR, __VA_ARGS__)(__VA_ARGS__)
 
 #define OPA_DISP_VARS(...) (std::cout << RAW_OPA_DISP_VARS(__VA_ARGS__) << std::endl)
 #define OPA_DISP(msg, ...) (std::cout << msg << ": " << RAW_OPA_DISP_VARS(__VA_ARGS__) << std::endl)
@@ -501,6 +534,7 @@
 #include <sstream>
 #include <stack>
 #include <string>
+
 #else
 #include <stdlib.h>
 #endif
@@ -520,12 +554,12 @@
 #include <functional>
 #include <numeric>
 #include <random>
+#include <string_view>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <string_view>
 #endif
 
 #if !OPA_SWIG
@@ -703,6 +737,7 @@ static inline u64 count_bit_slow(u64 n) { return (n == 0) ? 0 : 1 + count_bit_sl
 static inline u64 low_bit(u64 n) { return (n ^ n - 1) & n; }
 static inline u64 ctz(u64 n) { return (n == 0 ? -1 : ctz(n >> 1) + 1); }
 static inline s8 log2_high_bit(u64 n) {
+  return n == 0 ? -1 : 63 - __builtin_clzll(n);
   s8 res = -1;
   while (n) ++res, n >>= 1;
   return res;

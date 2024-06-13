@@ -1,16 +1,15 @@
 #pragma once
 
 #include <opa/predef.h>
+#include <opa_base.h>
 #include <opa_common_base.h>
 #include <opa/utils/stacktrace.h>
 #if OPA_SWIG
 #define DECLARE_int32(...)
 #endif
 
-#include <gflags/gflags.h>
 #include <absl/strings/string_view.h>
 //#include <glib/gtl/map_util.h>
-#include <glog/logging.h>
 #include <opa/stolen/StringRef.h>
 
 namespace opa {

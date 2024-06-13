@@ -60,8 +60,7 @@ public:
   const FastGraph &graph;
 };
 
-std::vector<CComponent>
-compute_digraph_connected_components(const FastGraph &graph) {
+std::vector<CComponent> compute_digraph_connected_components(const FastGraph &graph) {
 
   DigraphConnectedComponentsHelper helper(graph);
   helper.compute();
@@ -126,8 +125,7 @@ struct TreeCtx {
       longuest_path.update(md.second + 1, MP(a, md.first));
     }
     if (kmf.has(1)) {
-      longuest_path.update(kmf.get_cost(0) + kmf.get_cost(1),
-                           MP(kmf.get(0), kmf.get(1)));
+      longuest_path.update(kmf.get_cost(0) + kmf.get_cost(1), MP(kmf.get(0), kmf.get(1)));
     }
     return md;
   }
@@ -166,21 +164,18 @@ std::pair<int, int> get_tree_center(const FastGraph &tree) {
 
   int midp = len / 2;
   int x = (da > midp ? a : b);
-  REP (i, midp)
-    x = ctx.par[x];
+  REP (i, midp) x = ctx.par[x];
   if (len % 2 == 1) return { x, ctx.par[x] };
   return { x, -1 };
 }
 
-std::vector<std::vector<int> >
-get_tree_automorphism_partitions(const FastGraph &tree) {
+std::vector<std::vector<int> > get_tree_automorphism_partitions(const FastGraph &tree) {
   auto center = get_tree_center(tree);
   OPA_CHECK0(center.second == -1); // atm only support vertex centered trees
 
   TreeCtx ctx(tree, center.first);
   std::vector<std::vector<int> > rdepth_to_nodes(ctx.n);
-  REP (i, ctx.n)
-    rdepth_to_nodes[ctx.rdepth[i]].push_back(i);
+  REP (i, ctx.n) rdepth_to_nodes[ctx.rdepth[i]].push_back(i);
 
   int nid = 0;
   std::vector<int> tree_id(ctx.n);
@@ -195,9 +190,7 @@ get_tree_automorphism_partitions(const FastGraph &tree) {
     std::sort(ALL(node_to_children));
     REP (i, node_to_children.size()) {
       int cid =
-        i == 0 || (node_to_children[i].first != node_to_children[i - 1].first)
-          ? nid++
-          : nid - 1;
+        i == 0 || (node_to_children[i].first != node_to_children[i - 1].first) ? nid++ : nid - 1;
       tree_id[node_to_children[i].second] = cid;
     }
   }
@@ -224,14 +217,14 @@ std::vector<int> topological_ordering(const FastGraph &graph) {
       if (--degree_rem[edge.to] == 0) q.push(edge.to);
     }
   }
+  if (res.size() != graph.node_count()) return {};
   OPA_CHECK0(res.size() == graph.node_count());
 
   return res;
 }
 
 UPTR(FastGraph)
-compress_digraph(const FastGraph &graph,
-                 const std::unordered_set<int> &keep_nodes) {
+compress_digraph(const FastGraph &graph, const std::unordered_set<int> &keep_nodes) {
 
   FastGraph graph_nokeep(graph.n, Mode::DIGRAPH);
   for (auto &edge : graph.list_edges()) {
@@ -242,24 +235,21 @@ compress_digraph(const FastGraph &graph,
   auto ordering = topological_ordering(graph_nokeep);
   std::reverse(ALL(ordering));
 
-  std::unordered_map<int, std::unordered_map<int, utils::MinFinder<int> > >
-    node_to_next;
+  std::unordered_map<int, std::unordered_map<int, utils::MinFinder<int> > > node_to_next;
   for (auto &v : ordering) {
     std::unordered_map<int, utils::MinFinder<int> > entry;
     for (auto &e : graph.get_successors(v)) {
       if (keep_nodes.count(e))
         entry[e].update(1);
       else {
-        for (auto &u : node_to_next[e])
-          entry[u.first].update(u.second.get() + 1);
+        for (auto &u : node_to_next[e]) entry[u.first].update(u.second.get() + 1);
         entry.insert(ALL(node_to_next[e]));
       }
     }
     node_to_next[v] = entry;
   }
 
-  auto res = std::make_unique<FastGraph>(0, Mode::DIGRAPH | Mode::REMAP |
-                                              Mode::DYNAMIC_SIZE);
+  auto res = std::make_unique<FastGraph>(0, Mode::DIGRAPH | Mode::REMAP | Mode::DYNAMIC_SIZE);
   REP (v, graph.n) {
     if (!keep_nodes.count(v)) continue;
     std::unordered_map<int, utils::MinFinder<int> > nexts;
@@ -302,15 +292,12 @@ compress_paths(FastGraph &graph, std::unordered_set<int> blacklist) {
   auto uj = std::make_shared<algo::UnionJoin>(graph.node_count());
 
   REP (i, graph.node_count()) {
-    if (graph.vertices[i].deg_in == 1)
-      targets.insert(MP(graph.get_predecessors(i, false)[0], i));
-    if (graph.vertices[i].deg_out == 1)
-      targets.insert(MP(i, graph.get_successors(i, false)[0]));
+    if (graph.vertices[i].deg_in == 1) targets.insert(MP(graph.get_predecessors(i, false)[0], i));
+    if (graph.vertices[i].deg_out == 1) targets.insert(MP(i, graph.get_successors(i, false)[0]));
   }
 
   for (auto &target : targets) {
-    if (blacklist.count(graph.inormv(target.first)) ||
-        blacklist.count(graph.inormv(target.second)))
+    if (blacklist.count(graph.inormv(target.first)) || blacklist.count(graph.inormv(target.second)))
       continue;
 
     int a = uj->root(target.first);
@@ -322,11 +309,9 @@ compress_paths(FastGraph &graph, std::unordered_set<int> blacklist) {
     contract_edge(graph, graph.inormv(a), graph.inormv(b));
     OPA_CHECK0(graph.deg(b, false) == 0);
     OPA_CHECK0(graph.deg(b, false) ==
-               graph.get_successors(b, false).size() +
-                 graph.get_predecessors(b, false).size());
+               graph.get_successors(b, false).size() + graph.get_predecessors(b, false).size());
     OPA_CHECK0(graph.deg(a, false) ==
-               graph.get_successors(a, false).size() +
-                 graph.get_predecessors(a, false).size());
+               graph.get_successors(a, false).size() + graph.get_predecessors(a, false).size());
     uj->set_repr(a, b);
   }
   return uj;
@@ -364,7 +349,9 @@ void serialize_attrmap(FILE *f, const AttributeMap &attr_map) {
 
 void serialize_graph(FILE *f, const FastGraph &graph) {
   fprintf(f, "%d,%d\n", graph.node_count(), graph.n_edges());
-  REP (i, graph.node_count()) { fprintf(f, "%d\n", graph.inormv(i)); }
+  REP (i, graph.node_count()) {
+    fprintf(f, "%d\n", graph.inormv(i));
+  }
   for (auto &edge : graph.list_edges()) {
     if (!edge.forward) continue;
     fprintf(f, "%d,%d,%d\n", edge.from, edge.to, edge.data);

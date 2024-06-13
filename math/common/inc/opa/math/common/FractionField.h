@@ -3,22 +3,30 @@
 #include <opa/math/common/Field.h>
 
 OPA_NAMESPACE_DECL3(opa, math, common)
+template <class T> class FractionField;
 
 template <class T> class Fraction {
 
 public:
   typedef Fraction<T> SelfType;
+  typedef FractionField<T> SelfFractionField;
   typedef Field<SelfType> SelfField;
 
   Fraction() {}
-  Fraction(const T &p, const T &q, const SelfField *field) {
-    this->field = field;
+  Fraction(const T &p, const T &q, const SelfFractionField *ffield) {
+    this->field = (SelfField *)ffield;
+    this->ffield = ffield;
     this->set(p, q);
   }
 
-  Fraction(const T &p, const SelfField *field) {
-    this->field = field;
+  Fraction(const T &p, const SelfFractionField *ffield) {
+    this->field = (SelfField *)ffield;
+    this->ffield = ffield;
     this->set(p);
+  }
+  Fraction(const T &p) {
+    this->p = p;
+    this->q = 1;
   }
 
   void set(const T &p) {
@@ -30,20 +38,26 @@ public:
     this->p = p;
     this->q = q;
   }
-  Fraction<T> clone() const { return Fraction<T>(p, q, field); }
-  Fraction<T> create(const T &p, const T &q) const { return Fraction<T>(p, q, field); }
-  Fraction<T> create(const T &p) const { return Fraction<T>(p, field); }
+  Fraction<T> clone() const { return Fraction<T>(p, q, ffield); }
+  Fraction<T> create(const T &p, const T &q) const { return Fraction<T>(p, q, ffield); }
+  Fraction<T> create(const T &p) const { return Fraction<T>(p, ffield); }
+  bool is_integer() const;
+  T integer() const;
 
-  bool operator==(const SelfType &x) const { return p == x.p && q == x.q; }
-  bool operator<(const SelfType &x) const { return this->field->lt(*this, x); }
+  bool operator<(const SelfType &x) const { return this->get_field(x)->lt(*this, x); }
+  bool operator==(const SelfType &x) const { return this->get_field(x)->eq(*this, x); }
   SelfType operator-() const { return field->neg(*this); }
+  const SelfField *get_field(const SelfType &a) const {
+    if (field == nullptr) return a.field;
+    return field;
+  }
 
 #define OPA_DEFINE_OP(typ, op, func)                                                               \
   typ operator op(const typ &a) const { return func(*this, a); }
-  OPA_DEFINE_OP(SelfType, +, this->field->add);
-  OPA_DEFINE_OP(SelfType, -, this->field->sub);
-  OPA_DEFINE_OP(SelfType, *, this->field->mul);
-  OPA_DEFINE_OP(SelfType, /, this->field->div);
+  OPA_DEFINE_OP(SelfType, +, this->get_field(a)->add);
+  OPA_DEFINE_OP(SelfType, -, this->get_field(a)->sub);
+  OPA_DEFINE_OP(SelfType, *, this->get_field(a)->mul);
+  OPA_DEFINE_OP(SelfType, /, this->get_field(a)->div);
 
 #define OPA_DEFINE_CMP_OPS_FROM_LT_AND_EQ(typ)                                                     \
   bool operator!=(const typ &a) const { return !(*this == a); }                                    \
@@ -69,9 +83,11 @@ public:
     }
     return os;
   }
+
   T p;
   T q;
   const SelfField *field = nullptr;
+  const SelfFractionField *ffield = nullptr;
 };
 
 template <class T> class FractionField : public Field<Fraction<T> > {
@@ -142,13 +158,16 @@ public:
   virtual QT getZ() const { return create(m_base_ring->getZ(), m_base_ring->getE()); }
   virtual QT getE() const { return create(m_base_ring->getE(), m_base_ring->getE()); }
   virtual int get_poly_pos() const { return m_base_ring->get_poly_pos(); }
+  virtual bool eq(const QT &a, const QT &b) const override {
+    return m_base_ring->eq(a.p, b.p) && m_base_ring->eq(a.q, b.q);
+  }
 
   QT import_integer(const T &a) const { return create(a, m_base_ring->getE()); }
 
   bool is_integer(const QT &a) const { return m_base_ring->isE(a.q); }
   T to_base_or_fail(const QT &a) const {
     OPA_CHECK(is_integer(a), a);
-    return a.p;
+    return integer_part(a);
   }
   T project(const QT &a) const { return to_base_or_fail(a); }
 
@@ -206,6 +225,9 @@ private:
   bool m_do_reduce = true;
   const Ring<T> *m_base_ring = nullptr;
 };
+
+template <class T> bool Fraction<T>::is_integer() const { return this->ffield->is_integer(*this); }
+template <class T> T Fraction<T>::integer() const { return this->ffield->to_base_or_fail(*this); }
 
 OPA_NAMESPACE_DECL3_END
 

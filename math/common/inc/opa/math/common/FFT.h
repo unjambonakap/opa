@@ -5,7 +5,7 @@
 
 OPA_NM_MATH_COMMON
 
-template <class T> class FFTProvider {
+template <class T> class IFFTProvider {
 
 protected:
   void configure(int npw, const Field<T> *f) {
@@ -32,16 +32,45 @@ public:
   }
 };
 
-template <class T> class FFT2 : public FFTProvider<T> {
+template <class T, class F> class FFTProviderF {
+
+protected:
+  void configure(int npw, const F *f) {
+    m_npw = npw;
+    m_n = 1 << npw;
+    m_f = f;
+  }
+
+public:
+  int m_npw;
+  int m_n;
+  const F *m_f;
+
+  virtual std::vector<T> fft(const std::vector<T> &tb) const = 0;
+  virtual std::vector<T> ifft(const std::vector<T> &tb, bool normalize = true) const = 0;
+
+  virtual std::vector<T> mul(const std::vector<T> &a, const std::vector<T> &b) const {
+
+    OPA_CHECK0(a.size() + b.size() - 1 <= m_n);
+    auto ia = fft(a);
+    auto ib = fft(b);
+    REP (i, m_n) ia[i] = m_f->mul(ia[i], ib[i]);
+    return ifft(ia);
+  }
+};
+
+template <class T> class FFTProvider : public FFTProviderF<T, Field<T> > {};
+
+template <class T, class F> class FFT2F : public FFTProviderF<T, F> {
   typedef std::vector<T> vec;
 
 public:
-  FFT2() {}
-  FFT2(const Field<T> *f, int npw) { this->init(f, npw); }
+  FFT2F() {}
+  FFT2F(const F *f, int npw) { this->init(f, npw); }
 
-  void init(const Field<T> *f, int npw) { this->init(f, npw, f->getNthRoot(1 << npw)); }
+  void init(const F *f, int npw) { this->init(f, npw, f->getNthRoot(1 << npw)); }
 
-  void init(const Field<T> *f, int npw, const T &nth_root) {
+  void init(const F *f, int npw, const T &nth_root) {
     this->configure(npw, f);
     m_w = nth_root;
     m_iw = this->m_f->inv(m_w);
@@ -108,12 +137,13 @@ private:
   std::vector<T> m_wl;
   std::vector<T> m_iwl;
 };
+template <class T> class FFT2 : public FFT2F<T, Field<T> > {};
 
-template <class T> class FFT2Dispatcher : public FFTProvider<T> {
-  std::vector<std::unique_ptr<FFTProvider<T> > > _ffts;
+template <class T> class FFT2Dispatcher : public IFFTProvider<T> {
+  std::vector<std::unique_ptr<IFFTProvider<T> > > _ffts;
 
 public:
-  typedef std::function<FFTProvider<T> *(int)> MakeProvider;
+  typedef std::function<IFFTProvider<T> *(int)> MakeProvider;
   FFT2Dispatcher(const Field<T> *f, int npw) {
     REP (i, npw + 1) {
       _ffts.emplace_back(new FFT2<T>(f, i));
@@ -126,8 +156,9 @@ public:
     }
   }
 
-  const FFTProvider<T> &sel(int a, int b = 1) const {
-    int sz = log2_high_bit(a + b - 1) + 1;
+  const IFFTProvider<T> &sel(int a, int b = 1) const {
+    int s = std::max(1, a) + std::max(1, b) - 2;
+    int sz = s < 0 ? 0 : log2_high_bit(s) + 1;
     OPA_CHECK0(sz < _ffts.size());
     return *_ffts[sz];
   }
@@ -143,7 +174,7 @@ public:
   }
 };
 
-template <class T> class FFT_RealF : public FFTProvider<T> {
+template <class T> class FFT_RealF : public IFFTProvider<T> {
 public:
   typedef std::complex<T> CT;
   FFT2<CT> _fft;

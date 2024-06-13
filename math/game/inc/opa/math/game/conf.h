@@ -5,11 +5,12 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
+#include <glm/geometric.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/norm.hpp>
 
-#include "glib/hash/hash.h"
+#include <opa/utils/hash.h>
 #include <opa/algo/base.h>
 #include <opa/algo/graph.h>
 #include <opa/utils/DataStruct.h>
@@ -48,11 +49,11 @@ std::ostream &operator<<(std::ostream &os, const glm::mat4 &mat);
 #define OPA_VEC_EQ(a, b, eps)                                                  \
   OPA_FLOAT_EQ(glm::distance((a), (b)), 0, (a).length() * eps)
 
-#define OPA_DRANGE_REMAP(L, H, v) ((atan(v) / PI + 1. / 2) * ((H) - (L)) + (L))
+#define OPA_DRANGE_REMAP(L, H, v) ((atan(v) / OPA_PI + 1. / 2) * ((H) - (L)) + (L))
 #define OPA_DRANGE_REMAP_CENTERED(D, v) OPA_DRANGE_REMAP(-D, D, v)
 
-template <class T> T deg_to_rad(T a) { return a * 2 * PI / 360; }
-template <class T> T rad_to_deg(T a) { return a * 360 / 2 / PI; }
+template <class T> T deg_to_rad(T a) { return a * 2 * OPA_PI / 360; }
+template <class T> T rad_to_deg(T a) { return a * 360 / 2 / OPA_PI; }
 static const std::vector<glm::vec2> UnitSquare = {
   glm::vec2(0, 0), glm::vec2(1, 0), glm::vec2(0, 1), glm::vec2(1, 1)
 };
@@ -273,8 +274,7 @@ template <> struct hash<opa::Pos4> {
   typedef std::size_t result_type;
 
   result_type operator()(argument_type const &s) const {
-    return glib::Hash64((const char *)&s[0],
-                        2 * sizeof(argument_type::value_type));
+    return opa::utils::do_hash(std::string_view((const char *)&s[0], 4 * sizeof(argument_type::value_type)));
   }
 };
 
@@ -283,8 +283,7 @@ template <> struct hash<opa::Pos2> {
   typedef std::size_t result_type;
 
   result_type operator()(argument_type const &s) const {
-    return glib::Hash64((const char *)&s[0],
-                        2 * sizeof(argument_type::value_type));
+    return opa::utils::do_hash(std::string_view((const char *)&s[0], 2 * sizeof(argument_type::value_type)));
   }
 };
 
@@ -293,8 +292,7 @@ template <> struct hash<opa::Pos> {
   typedef std::size_t result_type;
 
   result_type operator()(argument_type const &s) const {
-    return glib::Hash64((const char *)&s[0],
-                        3 * sizeof(argument_type::value_type));
+    return opa::utils::do_hash(std::string_view((const char *)&s[0], 3 * sizeof(argument_type::value_type)));
   }
 };
 #endif

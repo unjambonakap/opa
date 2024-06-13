@@ -1,5 +1,6 @@
 #pragma once
 
+#include <opa/utils/map_util.h>
 #include <opa/algo/base.h>
 #include <opa_common.h>
 #include <type_traits>
@@ -131,10 +132,7 @@ template <> inline void AttributeContainer::set(int node, const int &val) {
 struct AttributeMap {
 
   template <typename T> void set_attr(const std::string &attr, int node, const T &val) {
-    auto attrc =
-      glib::gtl::LookupOrInsert(&attribute_map, attr, make_sptr(AttributeContainer::New<T>()));
-
-    attrc->set(node, val);
+    attribute_map.insert(attr, make_sptr(AttributeContainer::New<T>())).first->set(node, val);
   }
   template <typename T> T get_attr(const std::string &attr, int node) {
     return attribute_map[attr]->get<T>(node);

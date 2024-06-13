@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "opa/stolen/StringRef.h"
+#include <cstdint>
 #include <bitset>
 
 namespace opa {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opa/utils/hash.h>
+#include <opa/utils/map_util.h>
 #include <opa_common.h>
 #include <type_traits>
 
@@ -452,8 +453,7 @@ public:
   }
 
   int get_or_die(const T &a) const {
-    auto it = m_remap.find(a);
-    const int *v  = it == m_remap.end() ?  0 : *it;
+    const int *v = glib::gtl::FindOrNull(m_remap, a);
     OPA_CHECK(v != nullptr, a);
     return *v;
   }

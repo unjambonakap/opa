@@ -135,12 +135,11 @@ template <class T> class GF_pT : public Field<T> {
 public:
   T n;
 
-  GF_pT() = delete;
+  GF_pT() {}
   GF_pT(T n, bool init = true) : n(n) {
     if (init) this->init(bignum(n), bignum(n));
   }
-  template<class U>
-  T importT(const U &a) const { return T(a % U(n)); }
+  template <class U> T importT(const U &a) const { return T(a % U(n)); }
 };
 
 OPA_NM_MATH_COMMON_END

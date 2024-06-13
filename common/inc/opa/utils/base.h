@@ -73,7 +73,7 @@ template <class T> void sort_pair(std::pair<T, T> &a) {
 template <
   template <typename T, typename... Ts> class Container, typename Functor,
   typename T, // <-- This is the one we'll override in the return container
-  typename U = typename std::result_of<Functor(T)>::type, typename... Ts>
+  typename U = typename std::invoke_result<Functor, T>::type, typename... Ts>
 Container<U> transform_container(const Container<T, Ts...> &c, Functor &&f) {
   Container<U> ret;
   std::transform(std::begin(c), std::end(c), std::inserter(ret, std::end(ret)),
@@ -84,7 +84,7 @@ Container<U> transform_container(const Container<T, Ts...> &c, Functor &&f) {
 template <
   template <typename T, typename... Ts> class Container, typename Functor,
   typename T, // <-- This is the one we'll override in the return container
-  typename U = typename std::result_of<Functor(T, T)>::type, typename... Ts>
+  typename U = typename std::invoke_result<Functor, T, T>::type, typename... Ts>
 Container<U, Ts...> transform_container_binary(const Container<T, Ts...> &a,
                                                const Container<T, Ts...> &b,
                                                Functor &&f) {

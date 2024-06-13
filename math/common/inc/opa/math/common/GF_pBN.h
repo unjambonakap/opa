@@ -8,7 +8,8 @@ OPA_NAMESPACE_DECL3(opa, math, common)
 
 class GF_pBN : public GF_pT<bignum> {
 public:
-  GF_pBN(const bignum &n) : GF_pT(n) { this->init(n); }
+  GF_pBN() {}
+  GF_pBN(const bignum &n) : GF_pT(n, false) { this->init(n); }
   void init(const bignum &n);
 
   virtual bignum mul(const bignum &a, const bignum &b) const;

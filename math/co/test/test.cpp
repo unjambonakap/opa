@@ -1,7 +1,9 @@
+#include <random>
+#define OPA_HEX 0
+#include "opa/utils/buffer_reader.h"
 #include <gtest/gtest.h>
 
 #include <fplll/fplll.h>
-#include <glib/strings/strutil.h>
 #include <opa/math/co/barvinok.h>
 #include <opa/math/co/base.h>
 #include <opa/math/common/matrix_utils.h>
@@ -12,6 +14,7 @@
 
 using namespace opa;
 DEFINE_int32(maxd, 2, "");
+DEFINE_int32(mind, 2, "");
 DEFINE_string(dim_list, "2", "");
 DEFINE_string(dump_file, "/tmp/debug.out", "");
 DEFINE_int32(nrepeat, 1, "");
@@ -22,6 +25,7 @@ DEFINE_bool(debug_check_more, false, "");
 DEFINE_bool(check_answers, true, "");
 DEFINE_bool(simple, false, "");
 DEFINE_bool(check_bruteforce, true, "");
+DEFINE_string(fname_poly3d, "", "");
 std::vector<u32> dim_list;
 
 using namespace opa::math::common;
@@ -30,8 +34,9 @@ using namespace opa::math::game;
 using namespace std;
 
 void init_test() {
-  auto res = glib::Split(FLAGS_dim_list, ",");
-  dim_list = utils::transform_container(res, &utils::Conv::from_str2<u32>);
+  auto res = absl::StrSplit(std::string(ALL(FLAGS_dim_list)), ",");
+  auto rest = V_t(std::string)(ALL(res));
+  dim_list = utils::transform_container(rest, &utils::Conv::from_str2<u32>);
 }
 Barvinok::Configuration build_conf() {
   Barvinok::Configuration conf;
@@ -57,25 +62,30 @@ std::vector<ZModule_t> gen_ncube_vertices(int n) {
   std::vector<ZModule_t> vertices;
   REP (i, 1 << n) {
     std::vector<bignum> coords;
-    REP (j, n) { coords.push_back(i >> j & 1); }
+    REP (j, n) {
+      coords.push_back(i >> j & 1);
+    }
     vertices.emplace_back(coords);
   }
   return vertices;
 }
-
-Polyhedra_VertexRepr
-gen_poly_from_zvertices(const std::vector<ZModule_t> &vertices) {
-  std::vector<QModule_t> qvertices = lift_zmodules(vertices);
-  Polyhedra_VertexRepr polyhedra;
-  polyhedra.init(qvertices);
-  return polyhedra;
+bool is_degenerate(const std::vector<ZModule_t> &zvertices) {
+  int n = zvertices.size();
+  int d = zvertices[0].size();
+  Matrix<Q> mx(&QF, n, d);
+  mx.set_rows(zvertices | STD_TSFX(lift_zmodule(x - zvertices[0])) | STD_VEC);
+  int subspace_dim = mx.rank(-1, -1);
+  return subspace_dim != d;
 }
 
-Polyhedra_VertexRepr
-gen_poly_from_vertices(const std::vector<QModule_t> &vertices) {
+Polyhedra_VertexRepr gen_poly_from_vertices(const std::vector<QModule_t> &vertices) {
   Polyhedra_VertexRepr polyhedra;
   polyhedra.init(vertices);
   return polyhedra;
+}
+
+Polyhedra_VertexRepr gen_poly_from_zvertices(const std::vector<ZModule_t> &vertices) {
+  return gen_poly_from_vertices(lift_zmodules(vertices));
 }
 
 Z get_bruteforce(const Polyhedra_VertexRepr &polyhedra,
@@ -85,15 +95,12 @@ Z get_bruteforce(const Polyhedra_VertexRepr &polyhedra,
   std::vector<utils::MaxFinder<Z> > maxv(d);
 
   for (auto &v : polyhedra.vertices) {
-    REP (i, d)
-      minv[i].update(QF.floor(v[i])), maxv[i].update(QF.ceil(v[i]));
+    REP (i, d) minv[i].update(QF.floor(v[i])), maxv[i].update(QF.ceil(v[i]));
   }
   std::vector<std::vector<s32> > ranges;
   REP (i, d) {
-    OPA_DISP("Bruteforce ", i, minv[i].get(), maxv[i].get());
-    ranges.push_back(utils::Range<s32>::StepRange(minv[i].get().gets32(),
-                                                  maxv[i].get().gets32() + 1, 1)
-                       .tb());
+    ranges.push_back(
+      utils::Range<s32>::StepRange(minv[i].get().gets32(), maxv[i].get().gets32() + 1, 1).tb());
   }
 
   int count = 0;
@@ -101,19 +108,16 @@ Z get_bruteforce(const Polyhedra_VertexRepr &polyhedra,
     ZModule_t p(utils::transform_container(v, &bignum::froms32));
     if (on_planes != nullptr &&
         !std::all_of(ALL(*on_planes),
-                     std::bind(&Hyperplane::is_on, std::placeholders::_1,
-                               lift_zmodule(p))))
+                     std::bind(&Hyperplane::is_on, std::placeholders::_1, lift_zmodule(p))))
       return;
-    if (polyhedra.contains(lift_zmodule(p))){
-    OPA_DISP("Bruteforce point ", p);
-    ++count;
+    if (polyhedra.contains(lift_zmodule(p))) {
+      ++count;
     }
   });
   return count;
 }
 
-void set_mesh_face_from_points(proto::MeshFace *mf,
-                               const std::vector<ZModule_t> &points) {
+void set_mesh_face_from_points(proto::MeshFace *mf, const std::vector<ZModule_t> &points) {
   for (auto &pt : points) {
     auto pos = mf->add_vertex();
     pos->set_x(pt[0].getfloat().to_double());
@@ -122,33 +126,28 @@ void set_mesh_face_from_points(proto::MeshFace *mf,
   }
 }
 
-void dump_descent(proto::MeshList &ml, const Barvinok::DescentData &data,
-                  const string &desc) {
+void dump_descent(proto::MeshList &ml, const Barvinok::DescentData &data, const string &desc) {
   int dim = 3;
   if (data.children.size() == 0) {
     OPA_DISP0(data.rd.cone.rays, data.rd.sgn, data.rd.exclude_face);
     REP (i, dim) {
       proto::Mesh *single_mesh = ml.add_mesh();
-      single_mesh->set_name(
-        utils::stdsprintf("%s-%d", desc.c_str(), data.rd.exclude_face[i]));
-      set_mesh_face_from_points(single_mesh->add_face(),
-                                { ZModule_t(dim),
-                                  data.rd.cone.rays[(i + 1) % dim],
-                                  data.rd.cone.rays[(i + 2) % dim] });
+      single_mesh->set_name(utils::stdsprintf("%s-%d", desc.c_str(), data.rd.exclude_face[i]));
+      set_mesh_face_from_points(
+        single_mesh->add_face(),
+        { ZModule_t(dim), data.rd.cone.rays[(i + 1) % dim], data.rd.cone.rays[(i + 2) % dim] });
     }
   } else {
     proto::Mesh *single_mesh = ml.add_mesh();
     single_mesh->set_name("split_vec");
-    OPA_DISP0(data.rd.cone.rays, data.rd.sgn, data.rd.exclude_face, data.w,
-              data.hp_status);
-    set_mesh_face_from_points(single_mesh->add_face(),
-                              { ZModule_t(dim), data.w });
+    OPA_DISP0(data.rd.cone.rays, data.rd.sgn, data.rd.exclude_face, data.w, data.hp_status);
+    set_mesh_face_from_points(single_mesh->add_face(), { ZModule_t(dim), data.w });
     for (auto &child : data.children) dump_descent(ml, child, desc);
   }
 }
 
-void check_steps(int dim, Barvinok &left, Barvinok &right,
-                 const Barvinok::DescentData &data, int max_depth_l) {
+void check_steps(int dim, Barvinok &left, Barvinok &right, const Barvinok::DescentData &data,
+                 int max_depth_l) {
   bool is_leaf = data.children.size() == 0;
   for (auto &child : data.children) {
     check_steps(dim, left, right, child, max_depth_l - 1);
@@ -164,10 +163,9 @@ void check_steps(int dim, Barvinok &left, Barvinok &right,
   OPA_CHECK0(dl.ok);
   OPA_CHECK0(dr.ok);
 
-  OPA_DISP("CHECK STEP >> ", left.residue_helper.cone_ctx.resv,
-           right.residue_helper.cone_ctx.resv, is_leaf);
-  OPA_DISP("CHECK STEP2 >> ", left.residue_helper.res,
-           right.residue_helper.res);
+  OPA_DISP("CHECK STEP >> ", left.residue_helper.cone_ctx.resv, right.residue_helper.cone_ctx.resv,
+           is_leaf);
+  OPA_DISP("CHECK STEP2 >> ", left.residue_helper.res, right.residue_helper.res);
 
   if (left.residue_helper.cone_ctx.resv != right.residue_helper.cone_ctx.resv) {
 
@@ -180,8 +178,7 @@ void check_steps(int dim, Barvinok &left, Barvinok &right,
       ml.SerializeToOstream(&tmpfile);
     }
 
-    OPA_DISP("failing on reduction of ", data.rd,
-             left.residue_helper.cone_ctx.resv,
+    OPA_DISP("failing on reduction of ", data.rd, left.residue_helper.cone_ctx.resv,
              right.residue_helper.cone_ctx.resv);
     OPA_CHECK0(!is_leaf);
 
@@ -204,10 +201,8 @@ void check_steps(int dim, Barvinok &left, Barvinok &right,
             Barvinok::DescentData tmp;
             left.rec(nrec, tmp);
           }
-          if (left.residue_helper.cone_ctx.resv ==
-              right.residue_helper.cone_ctx.resv) {
-            OPA_DISP("Should be ", bitstring(bit_exclude, 9),
-                     bitstring(bit_sgn, 3));
+          if (left.residue_helper.cone_ctx.resv == right.residue_helper.cone_ctx.resv) {
+            OPA_DISP("Should be ", bitstring(bit_exclude, 9), bitstring(bit_sgn, 3));
           }
         }
       }
@@ -248,8 +243,7 @@ void check_poly(const Polytope_ConeRepr &cone) {
       Barvinok::DescentData dleft = barvinok_reduce.descent_data;
       Barvinok::DescentData dright = barvinok_single.descent_data;
 
-      check_steps(x.vertex.size(), barvinok_reduce, barvinok_single, dleft,
-                  conf_reduce.max_depth);
+      check_steps(x.vertex.size(), barvinok_reduce, barvinok_single, dleft, conf_reduce.max_depth);
     }
   }
 }
@@ -313,8 +307,7 @@ TEST(BasicMat, SNF) {
   std::vector<std::vector<bignum> > ranges;
   REP (i, n) {
     if (i < m) {
-      ranges.push_back(
-        utils::Range<bignum>::StepRange(0, d.get(i, i).abs(), 1).tb());
+      ranges.push_back(utils::Range<bignum>::StepRange(0, d.get(i, i).abs(), 1).tb());
     } else
       ranges.push_back({ 0 });
   }
@@ -327,8 +320,7 @@ TEST(BasicMat, SNF) {
     auto tmp = iq.eval(v);
     std::vector<bignum> tmp_reduced = tmp;
     reduce_hnf_vec(lat_hnf, tmp_reduced, nullptr, true);
-    OPA_DISP0(v, tmp, tmp_reduced, Ring_Z.dot(v1, tmp_reduced),
-              Ring_Z.dot(v2, tmp_reduced));
+    OPA_DISP0(v, tmp, tmp_reduced, Ring_Z.dot(v1, tmp_reduced), Ring_Z.dot(v2, tmp_reduced));
   });
 }
 
@@ -396,8 +388,7 @@ TEST(BarvinokRed, LLL2) {
 TEST(Polyhedra, NCrossPoly) {
   int maxn = FLAGS_maxd;
   FOR (n, 2, maxn + 1) {
-    Polyhedra_VertexRepr polyhedra =
-      gen_poly_from_zvertices(gen_crosspoly_vertices(n));
+    Polyhedra_VertexRepr polyhedra = gen_poly_from_zvertices(gen_crosspoly_vertices(n));
     OPA_DISP0(polyhedra.faces);
     OPA_DISP0(polyhedra.cone_repr);
   }
@@ -406,8 +397,7 @@ TEST(Polyhedra, NCrossPoly) {
 TEST(Polyhedra, NCube) {
   int maxn = FLAGS_maxd;
   FOR (n, 2, maxn + 1) {
-    Polyhedra_VertexRepr polyhedra =
-      gen_poly_from_zvertices(gen_ncube_vertices(n));
+    Polyhedra_VertexRepr polyhedra = gen_poly_from_zvertices(gen_ncube_vertices(n));
     OPA_DISP0(polyhedra.faces);
     OPA_DISP0(polyhedra.cone_repr);
   }
@@ -416,13 +406,15 @@ TEST(Polyhedra, NCube) {
 TEST(Barvinok, Cube) {
   int maxn = FLAGS_maxd;
   Barvinok::Configuration conf;
-  conf.enumerate_ub = int(1e5);
+  conf.enumerate_ub = int(10);
   conf.max_try = 1;
   conf.online_mode = true;
 
   FOR (n, 2, maxn + 1) {
+    auto tmp = gen_ncube_vertices(n);
     Polyhedra_VertexRepr polyhedra =
-      gen_poly_from_zvertices(gen_ncube_vertices(n));
+      gen_poly_from_zvertices(tmp | STD_TSFX(x * bignum(10)) | STD_VEC);
+    OPA_DISP0(polyhedra.vertices);
 
     Barvinok barvinok;
     barvinok.init(conf);
@@ -434,8 +426,7 @@ TEST(Barvinok, Cube) {
   }
 }
 
-Z handle_poly(const Polyhedra_VertexRepr &polyhedra,
-              const Barvinok::Configuration &conf) {
+Z handle_poly(const Polyhedra_VertexRepr &polyhedra, const Barvinok::Configuration &conf) {
   Barvinok barvinok;
   barvinok.init(conf);
   auto res = barvinok.try_solve(polyhedra.cone_repr);
@@ -460,7 +451,9 @@ Z handle_poly_with_planes(const Polyhedra_VertexRepr &polyhedra,
                           const std::vector<Hyperplane> &planes,
                           const Barvinok::Configuration &conf) {
 
-  Polyhedra_VertexRepr target = compute_poly_proj(polyhedra, planes);
+  Polyhedra_VertexRepr target{
+    Polyhedra_RelRepr(compute_poly_proj_faces(polyhedra.faces_hp, planes).first).get_vertices()
+  };
   OPA_DISP0(target.vertices);
   Z res = handle_poly(target, conf);
   Z check_res = get_bruteforce(polyhedra, &planes);
@@ -481,14 +474,12 @@ TEST(Barvinok, CrossPoly) {
 
   for (auto d : dim_list) {
     REP (checkstep, FLAGS_nrepeat) {
-      std::vector<QModule_t> crosspoly_vertices =
-        lift_zmodules(gen_crosspoly_vertices(d));
+      std::vector<QModule_t> crosspoly_vertices = lift_zmodules(gen_crosspoly_vertices(d));
 
       if (!FLAGS_simple) {
         for (auto &x : crosspoly_vertices) x = x * QF.import(rng() % 8 + 1, 10);
       }
-      Polyhedra_VertexRepr polyhedra =
-        gen_poly_from_vertices(crosspoly_vertices);
+      Polyhedra_VertexRepr polyhedra = gen_poly_from_vertices(crosspoly_vertices);
 
       handle_poly(polyhedra, conf);
     }
@@ -505,15 +496,12 @@ TEST(Barvinok, CrossPolyShift) {
 
   for (auto d : dim_list) {
     REP (checkstep, FLAGS_nrepeat) {
-      std::vector<QModule_t> crosspoly_vertices =
-        lift_zmodules(gen_crosspoly_vertices(d));
+      std::vector<QModule_t> crosspoly_vertices = lift_zmodules(gen_crosspoly_vertices(d));
 
       if (!FLAGS_simple) {
-        for (auto &x : crosspoly_vertices)
-          x = x * QF.import(rng() % 10 + 5, 10);
+        for (auto &x : crosspoly_vertices) x = x * QF.import(rng() % 10 + 5, 10);
       }
-      Polyhedra_VertexRepr polyhedra =
-        gen_poly_from_vertices(crosspoly_vertices);
+      Polyhedra_VertexRepr polyhedra = gen_poly_from_vertices(crosspoly_vertices);
       handle_poly(polyhedra, conf);
     }
   }
@@ -534,16 +522,93 @@ TEST(Barvinok, Test1) {
   polyhedra.init(qvertices);
   OPA_DISP0(polyhedra.faces);
 }
+Matrix<Z> gen_transform(int target_d, int curd) {
+  auto m =
+    Matrix<Z>::rand(&Ring_Z, target_d, target_d, []() { return Z::froms32(10).rand_signed(); });
+  REP (i, m.n) m(i, i) = 1;
+  auto mlow = m.lower_tri();
+  auto mhigh = m.upper_tri();
+  auto rx = (mlow * mhigh);
+  OPA_DISP0(rx.get_det());
+  return rx.get_submatrix(0, 0, target_d, curd);
+}
+
+TEST(Barvinok, UnitaryTransform1) {
+
+  auto conf = build_conf();
+  int curd = 2;
+  int targetd = curd;
+  auto mx = gen_transform(targetd, curd);
+  int nvs = 5;
+  auto zbound = Z::froms32(20);
+  auto v2 = STD_RANGE(0, nvs) |
+            STD_TSFX(STD_RANGE(0, curd) | STD_TSFX(zbound.rand_signed()) | STD_VEC) |
+            STD_TSFX(ZModule_t(x)) | STD_VEC;
+
+  auto rmp = v2 | STD_TSFX(ZModule_t(mx.eval(x.elems))) | STD_VEC;
+  OPA_DISP0(v2, rmp);
+  OPA_DISP0(mx);
+
+  std::vector<QModule_t> qvertices = lift_zmodules(rmp);
+  Polyhedra_VertexRepr polyhedra;
+  polyhedra.init(qvertices);
+  OPA_DISP0(polyhedra.faces);
+
+  puts("\n\n lifted");
+  OPA_DISP0(handle_poly(polyhedra, conf));
+  puts("\n\n orig");
+  OPA_DISP0(handle_poly(Polyhedra_VertexRepr(lift_zmodules(v2)), conf));
+}
+
+TEST(Barvinok, Degenerate1) {
+  auto conf = build_conf();
+
+  {
+    std::vector<ZModule_t> vertices;
+    vertices.emplace_back(std::vector<bignum>{ 0, 0, 0 });
+    vertices.emplace_back(std::vector<bignum>{ 0, 1, 0 });
+    vertices.emplace_back(std::vector<bignum>{ 1, 0, 0 });
+    vertices.emplace_back(std::vector<bignum>{ 1, 1, 0 });
+    std::vector<QModule_t> qvertices = lift_zmodules(vertices);
+    Polyhedra_VertexRepr polyhedra;
+    polyhedra.init(qvertices);
+    OPA_DISP0(polyhedra.faces);
+    OPA_DISP0(handle_poly(polyhedra, conf));
+  }
+
+  {
+    int curd = 2;
+    int targetd = 3;
+    auto mx = gen_transform(targetd, curd);
+    int nvs = 5;
+    auto zbound = Z::froms32(20);
+    auto v2 = STD_RANGE(0, nvs) |
+              STD_TSFX(STD_RANGE(0, curd) | STD_TSFX(zbound.rand_signed()) | STD_VEC) |
+              STD_TSFX(ZModule_t(x)) | STD_VEC;
+
+    auto rmp = v2 | STD_TSFX(ZModule_t(mx.eval(x.elems))) | STD_VEC;
+    OPA_DISP0(v2, rmp);
+    OPA_DISP0(mx);
+
+    std::vector<QModule_t> qvertices = lift_zmodules(rmp);
+    Polyhedra_VertexRepr polyhedra;
+    polyhedra.init(qvertices);
+    OPA_DISP0(polyhedra.faces);
+
+    puts("\n\n lifted");
+    OPA_DISP0(handle_poly(polyhedra, conf));
+    puts("\n\n orig");
+    OPA_DISP0(handle_poly(Polyhedra_VertexRepr(lift_zmodules(v2)), conf));
+  }
+}
 
 TEST(Barvinok, LowDim0) {
   auto conf = build_conf();
 
   std::vector<Hyperplane> proj_planes;
-  proj_planes.emplace_back(lift_zmodule(std::vector<bignum>{ 1, 0, 1 }),
-                           QF.import(2));
+  proj_planes.emplace_back(lift_zmodule(std::vector<bignum>{ 1, 0, 1 }), QF.import(2));
 
-  std::vector<QModule_t> crosspoly_vertices =
-    lift_zmodules(gen_crosspoly_vertices(3));
+  std::vector<QModule_t> crosspoly_vertices = lift_zmodules(gen_crosspoly_vertices(3));
 
   for (auto &x : crosspoly_vertices) x = x * QF.import(3);
   Polyhedra_VertexRepr polyhedra = gen_poly_from_vertices(crosspoly_vertices);
@@ -554,11 +619,9 @@ TEST(Barvinok, LowDim1) {
   auto conf = build_conf();
 
   std::vector<Hyperplane> proj_planes;
-  proj_planes.emplace_back(
-    lift_zmodule(std::vector<bignum>{ -0x34, 0x3d, -0x1 }), QF.getE());
+  proj_planes.emplace_back(lift_zmodule(std::vector<bignum>{ -0x34, 0x3d, -0x1 }), QF.getE());
 
-  std::vector<QModule_t> crosspoly_vertices =
-    lift_zmodules(gen_crosspoly_vertices(3));
+  std::vector<QModule_t> crosspoly_vertices = lift_zmodules(gen_crosspoly_vertices(3));
 
   for (auto &x : crosspoly_vertices) x = x * QF.import(40);
   Polyhedra_VertexRepr polyhedra = gen_poly_from_vertices(crosspoly_vertices);
@@ -570,13 +633,11 @@ TEST(Barvinok, LowDim2) {
 
   int dim = 5;
   std::vector<Hyperplane> proj_planes;
-  proj_planes.emplace_back(
-    std::vector<Q>{ QF.import(0x1, 0x2), QF.import(0x13, 0x4),
-                    QF.import(-0xd, 0x2), QF.import(0x1), QF.import(0x0) },
-    QF.getZ());
-  proj_planes.emplace_back(std::vector<Q>{ QF.import(0x0), QF.import(0x3, 0x2),
-                                           QF.import(0x0), QF.import(0x0),
-                                           QF.import(0x1) },
+  proj_planes.emplace_back(std::vector<Q>{ QF.import(0x1, 0x2), QF.import(0x13, 0x4),
+                                           QF.import(-0xd, 0x2), QF.import(0x1), QF.import(0x0) },
+                           QF.getZ());
+  proj_planes.emplace_back(std::vector<Q>{ QF.import(0x0), QF.import(0x3, 0x2), QF.import(0x0),
+                                           QF.import(0x0), QF.import(0x1) },
                            QF.getZ());
   // proj_planes.emplace_back(std::vector<Q>{QF.import(0x1 , 0x2),
   // QF.import(-0x9 , 0x4), QF.import(0x1 , 0x2), QF.import(0x0),
@@ -585,12 +646,129 @@ TEST(Barvinok, LowDim2) {
   // QF.import(-0x7 , 0x4), QF.import(0xb , 0x2), QF.import(0x0),
   // QF.import(0x0), QF.import(0x0), QF.import(0x1)}, QF.getZ());
 
-  std::vector<QModule_t> crosspoly_vertices =
-    lift_zmodules(gen_crosspoly_vertices(dim));
+  std::vector<QModule_t> crosspoly_vertices = lift_zmodules(gen_crosspoly_vertices(dim));
 
   for (auto &x : crosspoly_vertices) x = x * QF.import(40);
   Polyhedra_VertexRepr polyhedra = gen_poly_from_vertices(crosspoly_vertices);
   handle_poly_with_planes(polyhedra, proj_planes, conf);
+}
+
+TEST(Barvinok, FromPoly3D) {
+  OPA_DISP0(FLAGS_fname_poly3d);
+  std::string content = opa::utils::read_file(FLAGS_fname_poly3d);
+  std::istringstream iss{ content };
+  s64 n, K;
+  VV_t(s64) tb;
+  int tn;
+  iss >> tn;
+  REP (ti, tn) {
+    iss >> n >> K;
+    tb.resize(n, std::vector<s64>(3));
+    REP (i, n) {
+      REP (f, 3) iss >> tb[i][f];
+    }
+    std::vector<ZModule_t> vertices;
+    vertices =
+      tb | STD_TSFX(ZModule_t(x | STD_TSFY(bignum::froms64(y) * bignum::froms64(K)) | STD_VEC)) |
+      STD_VEC;
+
+    int maxn = FLAGS_maxd;
+    Barvinok::Configuration conf;
+    conf.enumerate_ub = int(1e5);
+    conf.max_try = 1;
+    conf.online_mode = true;
+
+    Polyhedra_VertexRepr polyhedra = gen_poly_from_zvertices(vertices);
+
+    Barvinok barvinok;
+    barvinok.init(conf);
+    constexpr int mod = 998244353;
+    Z res = barvinok.solve(polyhedra.cone_repr);
+    OPA_DISP0(res % mod);
+  }
+}
+
+TEST(Barvinok, Cone) {
+  auto conf = build_conf();
+
+  conf.enumerate_ub = int(10);
+  conf.max_try = 1;
+  conf.online_mode = FLAGS_online_mode;
+  conf.max_depth = FLAGS_max_depth;
+
+  Barvinok barvinok;
+  barvinok.init(conf);
+
+  std::vector<ZModule_t> data;
+  data.emplace_back(std::vector<bignum>{ 0, 0 });
+  data.emplace_back(std::vector<bignum>{ 10, 8 });
+  data.emplace_back(std::vector<bignum>{ 3, -7 });
+
+  Polyhedra_VertexRepr polyhedra = gen_poly_from_zvertices(data);
+
+  constexpr int mod = 998244353;
+  Z res = barvinok.solve(polyhedra.cone_repr);
+  OPA_DISP0(get_bruteforce(polyhedra));
+  OPA_DISP0(res);
+}
+
+TEST(Barvinok, EhrhartPoly) {
+  auto conf = build_conf();
+
+  conf.enumerate_ub = int(4);
+  conf.max_try = 1;
+  conf.online_mode = FLAGS_online_mode;
+  conf.max_depth = FLAGS_max_depth;
+
+  Barvinok barvinok;
+  barvinok.init(conf);
+
+  FOR (d, FLAGS_mind, FLAGS_maxd + 1) {
+    REP (nrep, FLAGS_nrepeat) {
+      std::uniform_int_distribution<> dis(d + 1, 3 * d + 1);
+      int nx = dis(rng);
+
+      int maxx = std::min<int>(10, std::pow(1e9, 1.0 / (d + 1)));
+      std::vector<ZModule_t> vertices;
+      vertices =
+        STD_RANGE(0, nx) |
+        STD_TSFX(ZModule_t(STD_RANGE(0, d) | STD_TSFY(bignum(maxx).rand_signed()) | STD_VEC)) |
+        STD_VEC;
+
+      if (is_degenerate(vertices)) {
+        --nrep;
+        continue;
+      }
+
+      auto sx = std::unordered_set<ZModule_t>(ALL(vertices));
+      vertices = std::vector<ZModule_t>(ALL(sx));
+      OPA_DISP0(maxx, vertices);
+      auto get_poly = [&](bignum k) {
+        return gen_poly_from_zvertices(vertices | STD_TSFX(x * k) | STD_VEC);
+      };
+
+      auto px = get_poly(1);
+
+      OPA_DISP0(px.vertices);
+      OPA_DISP0(barvinok.solve(px.cone_repr));
+
+      std::vector<bignum> xvs, yvs;
+      xvs = STD_RANGE(0, d + 1) | STD_VECT(bignum);
+      yvs = xvs | STD_TSFX(x == 0 ? bignum(1) : get_bruteforce(get_poly(x))) | STD_VEC;
+      auto poly =
+        Q_x.interpolate(xvs | STD_TSFX(FFloat(x)) | STD_VEC, yvs | STD_TSFX(FFloat(x)) | STD_VEC);
+
+      auto checks = LQ::concat(STD_RANGE(1, 11) | STD_TSFX(bignum(x)),
+                               STD_RANGE(0, 10) | STD_TSFX(bignum::fromFloat(Float(1e20)).rand())) |
+                    STD_VEC;
+      auto ans_poly = checks | STD_TSFX(poly(x).integer()) | STD_VEC;
+      auto ans_barvinok = checks | STD_TSFX(barvinok.solve(get_poly(x).cone_repr)) | STD_VEC;
+      OPA_DISP0(ans_poly);
+      OPA_DISP0(ans_barvinok);
+      OPA_DISP0(yvs);
+      OPA_CHECK_EQ(ans_poly, ans_barvinok, d);
+    }
+  }
 }
 
 TEST(Lattice, Gen2) {

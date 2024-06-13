@@ -9,14 +9,13 @@ OPA_NM_MATH_COMMON
 void gcd_simplify(Matrix<Z> &m) {
   GcdBuilder<Z> gcd(Ring_Z);
   REP (i, m.n)
-    REP (j, m.m)
-      gcd.update(m(i, j));
+    REP (j, m.m) gcd.update(m(i, j));
   if (Ring_Z.isInv(gcd.v)) return;
   m.scdiv(gcd.v);
 }
 
-void hnf(const Matrix<Z> &a, Matrix<Z> *b, Matrix<Z> *u_res = nullptr,
-         Z *det_res = nullptr, bool nofail = false) {
+void hnf(const Matrix<Z> &a, Matrix<Z> *b, Matrix<Z> *u_res = nullptr, Z *det_res = nullptr,
+         bool nofail = false) {
   int n = a.getN();
   int m = a.getM();
   // working on rows operation, should be better for memory
@@ -26,8 +25,7 @@ void hnf(const Matrix<Z> &a, Matrix<Z> *b, Matrix<Z> *u_res = nullptr,
 
   REP (i, std::min(n, m)) {
     std::vector<Z> vals;
-    FOR (j, i, m)
-      vals.push_back(b->get(j, i));
+    FOR (j, i, m) vals.push_back(b->get(j, i));
 
     // OPA_DISP0(*b);
     auto plan = get_gcd_plan(*a.get_ring(), vals);
@@ -40,8 +38,7 @@ void hnf(const Matrix<Z> &a, Matrix<Z> *b, Matrix<Z> *u_res = nullptr,
     OPA_CHECK0(plan.gcd != 0);
     for (auto mat : { b, &u }) {
       for (const auto &step : plan.steps) {
-        mat->row_op(i + step.r1, i + step.r2, step.a11, step.a12, step.a21,
-                    step.a22);
+        mat->row_op(i + step.r1, i + step.r2, step.a11, step.a12, step.a21, step.a22);
       }
       if (plan.pos != 0) {
         mat->swap_rows(i, plan.pos + i);
@@ -86,8 +83,8 @@ Z hnf_det(const Matrix<Z> &mat) {
   return det;
 }
 
-bool reduce_hnf_vec(const Matrix<Z> &mat, std::vector<Z> &invec,
-                    std::vector<Z> *expl_res = nullptr, bool force = false) {
+bool reduce_hnf_vec(const Matrix<Z> &mat, std::vector<Z> &invec, std::vector<Z> *expl_res = nullptr,
+                    bool force = false) {
   int n = mat.n;
   int m = mat.m;
   std::vector<Z> expl(n, 0);
@@ -96,13 +93,11 @@ bool reduce_hnf_vec(const Matrix<Z> &mat, std::vector<Z> &invec,
   int c = 0;
   REP (i, n) {
     if (invec[i] == 0) continue;
-    if (!force && (c == m || mat(i, c) == 0 || invec[i] % mat(i, c) != 0))
-      return false;
+    if (!force && (c == m || mat(i, c) == 0 || invec[i] % mat(i, c) != 0)) return false;
     if (c == m || mat(i, c) == 0) continue;
     Z v = invec[i] / mat(i, c);
     expl[c] = v;
-    REP (j, n)
-      invec[j] -= v * mat(j, c);
+    REP (j, n) invec[j] -= v * mat(j, c);
     c++;
   }
 
@@ -112,8 +107,7 @@ bool reduce_hnf_vec(const Matrix<Z> &mat, std::vector<Z> &invec,
   return true;
 }
 
-void snf(const Matrix<Z> &a, Matrix<Z> *d_res, Matrix<Z> *p_res,
-         Matrix<Z> *q_res) {
+void snf(const Matrix<Z> &a, Matrix<Z> *d_res, Matrix<Z> *p_res, Matrix<Z> *q_res) {
   Matrix<Z> d, p, q;
   int n = a.n;
   int m = a.m;
@@ -150,11 +144,9 @@ void snf(const Matrix<Z> &a, Matrix<Z> *d_res, Matrix<Z> *p_res,
 
     NOTDONE:
       if (row_step) {
-        FOR (j, i, n)
-          vals.push_back(d.get(j, i));
+        FOR (j, i, n) vals.push_back(d.get(j, i));
       } else {
-        FOR (j, i, m)
-          vals.push_back(d.get(i, j));
+        FOR (j, i, m) vals.push_back(d.get(i, j));
       }
 
       auto plan = get_gcd_plan(*a.get_ring(), vals);
@@ -208,8 +200,7 @@ void snf(const Matrix<Z> &a, Matrix<Z> *d_res, Matrix<Z> *p_res,
 }
 
 template <class T>
-Matrix<T> expand_unimodular(const Ring<T> *ring, const std::vector<T> &tb,
-                            int target_pos) {
+Matrix<T> expand_unimodular(const Ring<T> *ring, const std::vector<T> &tb, int target_pos) {
   int n = tb.size();
   OPA_CHECK(target_pos >= 0 && target_pos < tb.size(), tb.size(), target_pos);
   std::vector<T> res = tb;
@@ -218,10 +209,8 @@ Matrix<T> expand_unimodular(const Ring<T> *ring, const std::vector<T> &tb,
   OPA_CHECK0(ring->isInv(plan.gcd));
 
   for (auto step : plan.steps) {
-    T va = ring->add(ring->mul(step.a11, tb[step.r1]),
-                     ring->mul(step.a12, tb[step.r2]));
-    T vb = ring->add(ring->mul(step.a21, tb[step.r1]),
-                     ring->mul(step.a22, tb[step.r2]));
+    T va = ring->add(ring->mul(step.a11, tb[step.r1]), ring->mul(step.a12, tb[step.r2]));
+    T vb = ring->add(ring->mul(step.a21, tb[step.r1]), ring->mul(step.a22, tb[step.r2]));
     res[step.r1] = va;
     res[step.r2] = vb;
     m.col_op(step.r1, step.r2, step.a11, step.a12, step.a21, step.a22);
@@ -240,6 +229,21 @@ Matrix<T> expand_unimodular(const Ring<T> *ring, const std::vector<T> &tb,
   return m;
 }
 
+template <class T> void gram_schmidt_real(Matrix<T> &a) {
+  int n = a.n;
+  auto ring = a.get_ring();
+  REP (i, n) {
+
+    REP (j, i) {
+      T dt = a.get_row(i).dot(a.get_row(j));
+      a.row_op(i, j, ring->getE(), ring->neg(dt));
+      OPA_CHECK0(ring->isZ(a.get_row(i).dot(a.get_row(j))));
+    }
+    T tt = ring->sqrt(a.get_row(i).dot(a.get_row(i)));
+    REP (j, a.m) a(i, j) = ring->div(a(i, j), tt);
+  }
+}
+
 template <class T> void gram_schmidt(Matrix<T> &a) {
   int n = a.n;
   auto ring = a.get_ring();
@@ -250,7 +254,7 @@ template <class T> void gram_schmidt(Matrix<T> &a) {
       T d = ring->gcd(dt, tt);
       dt = ring->neg(ring->div(dt, d));
       tt = ring->div(tt, d);
-      a.row_op(i, j, tt, dt, ring->getZ(), ring->getE());
+      a.row_op(i, j, tt, dt);
       OPA_CHECK0(ring->isZ(a.get_row(i).dot(a.get_row(j))));
     }
   }
@@ -275,20 +279,24 @@ template <class T> struct Module_t {
   }
 
   Module_t() { ring = GuessRing<T>(); }
+  Module_t(const Module_t<T> &peer) {
+    ring = peer.ring;
+    elems = peer.elems;
+  }
   Module_t(const Matrix<T> &m) {
     ring = GuessRing<T>();
     OPA_CHECK(m.is_vec(), m);
     elems = m.tovec();
   }
 
-  typename std::vector<T>::const_iterator begin() const {
-    return elems.begin();
-  }
+  typename std::vector<T>::const_iterator begin() const { return elems.begin(); }
   typename std::vector<T>::const_iterator end() const { return elems.end(); }
   typename std::vector<T>::iterator begin() { return elems.begin(); }
   typename std::vector<T>::iterator end() { return elems.end(); }
 
-  template <class Container> Module_t(const Container &elems_) {
+  template <typename Container, typename = typename std::enable_if_t<
+                                  (std::is_same_v<Container, Module_t<T> > == false)> >
+  Module_t(const Container &elems_) {
     ring = GuessRing<T>();
     for (const auto &e : elems_) elems.push_back(e);
   }
@@ -305,11 +313,11 @@ template <class T> struct Module_t {
     return res;
   }
 
-#define MODULE_FE(res, a, b, op)                                               \
-  REP (i, (a).elems.size()) {                                                  \
-    T x = (a).elems[i];                                                        \
-    T y = (b).elems[i];                                                        \
-    res.elems[i] = op;                                                         \
+#define MODULE_FE(res, a, b, op)                                                                   \
+  REP (i, (a).elems.size()) {                                                                      \
+    T x = (a).elems[i];                                                                            \
+    T y = (b).elems[i];                                                                            \
+    res.elems[i] = op;                                                                             \
   }
   Type operator*(const T &x) const {
     Type res = *this;
@@ -344,7 +352,9 @@ template <class T> struct Module_t {
   T dot(const Type &b) const {
     OPA_CHECK_EQ(elems.size(), b.elems.size(), *this, b);
     T res = ring->getZ();
-    REP (i, elems.size()) { res = res + elems[i] * b.elems[i]; }
+    REP (i, elems.size()) {
+      res = res + elems[i] * b.elems[i];
+    }
     return res;
   }
 
@@ -356,12 +366,20 @@ using ZModule_t = Module_t<Z>;
 using QModule_t = Module_t<Q>;
 QModule_t lift_zmodule(const ZModule_t &x) {
   QModule_t res = QModule_t::zero(x.size());
-  REP (i, x.size()) { res[i] = QF.import(x[i]); }
+  REP (i, x.size()) {
+    res[i] = QF.import(x[i]);
+  }
   return res;
 }
-ZModule_t force_zmodule(const QModule_t &x) {
-  return ZModule_t(make_integers(Ring_Z, x.elems));
+
+ZModule_t lower_qmodule(const QModule_t &x) {
+  ZModule_t res = ZModule_t::zero(x.size());
+  REP (i, x.size()) {
+    res[i] = x[i].integer();
+  }
+  return res;
 }
+ZModule_t force_zmodule(const QModule_t &x) { return ZModule_t(make_integers(Ring_Z, x.elems)); }
 
 std::vector<QModule_t> lift_zmodules(const std::vector<ZModule_t> &x) {
   std::vector<QModule_t> res;
@@ -369,10 +387,13 @@ std::vector<QModule_t> lift_zmodules(const std::vector<ZModule_t> &x) {
   return res;
 }
 
+std::vector<ZModule_t> lower_qmodules(const std::vector<QModule_t> &x) {
+  return x | STD_TSFX(lower_qmodule(x)) | STD_VEC;
+}
+
 Matrix<Z> generate_lattice(int n, int m, Z bound, s64 maxstep = -1) {
   Matrix<Z> mat(&Ring_Z, n, m);
-  REP (i, std::min(n, m))
-    mat(i, i) = 1;
+  REP (i, std::min(n, m)) mat(i, i) = 1;
   int M = n + m;
   std::vector<Z> possibilities = { 0, 0, 1, -1 };
   for (; maxstep != 0; --maxstep) {
@@ -402,3 +423,10 @@ Matrix<Z> generate_lattice(int n, int m, Z bound, s64 maxstep = -1) {
 }
 
 OPA_NM_MATH_COMMON_END
+namespace std {
+template <typename T> struct hash<opa::math::common::Module_t<T> > {
+  size_t operator()(const opa::math::common::Module_t<T> &x) const {
+    return std::hash<std::vector<T> >{}(x.elems);
+  }
+};
+} // namespace std

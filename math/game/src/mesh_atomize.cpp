@@ -12,6 +12,8 @@
 #include <random>
 #include <valarray>
 
+std::mt19937 rng(0);
+
 OPA_NAMESPACE_DECL3(opa, math, game)
 namespace atom {
 const double eps = 1e-6;
@@ -716,7 +718,7 @@ void KAtomizer::do_search_c(AtomizeAssignment *assignment,
     transfer_list.emplace_back(e.second.first, e.second.second, e.first.second);
   }
   opa::utils::make_unique(transfer_list);
-  std::random_shuffle(ALL(transfer_list));
+  std::shuffle(ALL(transfer_list), rng);
   OPA_DISP("Transfer >> ", transfer_list.size());
 
   for (auto &cnd : transfer_list) {

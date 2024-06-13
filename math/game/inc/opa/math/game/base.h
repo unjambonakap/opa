@@ -521,11 +521,11 @@ template <int N, typename VecType, typename MatType> struct BoxSpec_Gen {
 
   std::string str() const {
     if (N == 2) {
-      return glib::strings::Substitute(
+      return absl::Substitute(
         "Box2D=(corner=$0, vx=$1, vy=$2, area=$3)", toStr(corner), toStr(v[0]),
         toStr(v[1]), area());
     } else {
-      return glib::strings::Substitute(
+      return absl::Substitute(
         "Box=(corner=$0, vx=$1, vy=$2, vz=$3, volume=$4)", toStr(corner),
         toStr(v[0]), toStr(v[1]), toStr(v[2]), area());
     }

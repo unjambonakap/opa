@@ -246,8 +246,8 @@ public:
 
   virtual FaceCollection &push_face(const PointVec &face);
 
-  FaceCollection &load_stl(glib::StringPiece filename);
-  FaceCollection &load_stl_from_data(glib::StringPiece data);
+  FaceCollection &load_stl(std::string_view filename);
+  FaceCollection &load_stl_from_data(std::string_view data);
   FaceCollection &filter(mesh_face_filter_t filter_func);
   FaceCollection &add_plane(const PlaneSpec &plane, const Pos &center,
                             double dist, const Dir &base_dir = vec_0);
@@ -274,7 +274,7 @@ public:
   OPA_ACCESSOR(std::vector<PointVec>, m_faces, faces);
 
   void write_stl(utils::BufferWriter &writer) const;
-  void write_stl(glib::StringPiece filename) const {
+  void write_stl(std::string_view filename) const {
     utils::BufferFileWriter writer{ filename };
     write_stl(writer);
   }

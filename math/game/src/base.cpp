@@ -31,7 +31,7 @@ float vec2_cross(const glm::vec2 &a, const glm::vec2 &b) {
 }
 
 double positive_angle(double ang) {
-  if (ang < 0) ang += 2 * PI;
+  if (ang < 0) ang += 2 * OPA_PI;
   return ang;
 }
 float vec2_ang(const glm::vec2 &a) {
@@ -72,8 +72,8 @@ bool inside_polygon(const std::vector<glm::vec2> &tb, const glm::vec2 &x,
     const Pos2 &p2 = tb[(i + 1) % n];
     float next_ang = vec2_ang(p2);
 
-    if (next_ang < cur_ang) next_ang += 2 * PI;
-    if (want < cur_ang) want += 2 * PI;
+    if (next_ang < cur_ang) next_ang += 2 * OPA_PI;
+    if (want < cur_ang) want += 2 * OPA_PI;
     OPA_DISP0(cur_ang, next_ang, want);
 
     if (want <= next_ang) {

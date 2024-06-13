@@ -1,5 +1,6 @@
 #include <opa_common.h>
 #include <opa/math/adv/nfs.h>
+#include <opa/math/adv/lie.h>
 
 using namespace std;
 using namespace opa::math::adv;

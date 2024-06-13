@@ -10,7 +10,6 @@
 #include <lemon/list_graph.h>
 #include <lemon/matching.h>
 #include <lemon/smart_graph.h>
-#include <glib/gtl/optional.h>
 
 OPA_NAMESPACE_DECL3(opa, math, game)
 namespace proto {
@@ -353,7 +352,7 @@ public:
 protected:
   void init_edge(EdgeId id, const Pos &pos);
   mutable utils::Remapper<int> m_rmp;
-  mutable glib::optional<algo::FastGraph> m_graph;
+  mutable std::optional<algo::FastGraph> m_graph;
 
   // init face utils
 

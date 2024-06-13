@@ -35,7 +35,7 @@ static inline double quat_dist(const Rot &a, const Rot &b) {
   return glm::length(quat_to_euler(glm::inverse(b) * a));
 }
 
-const opa::OR::C1Manifold CircleManifold = opa::OR::C1Manifold(2 * PI);
+const opa::OR::C1Manifold CircleManifold = opa::OR::C1Manifold(2 * OPA_PI);
 
 class SphereManifold : public opa::OR::NManifold<Pos2> {
 public:

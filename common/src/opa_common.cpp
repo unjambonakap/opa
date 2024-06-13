@@ -26,7 +26,7 @@ bool is_init = false;
 
 void opa_init(int argc, char **argv) {
   if (!is_init) {
-    gflags::ParseCommandLineFlags(&argc, &argv, true);
+    google::ParseCommandLineFlags(&argc, &argv, true);
     google::InitGoogleLogging(argv[0]);
     is_init = true;
   }

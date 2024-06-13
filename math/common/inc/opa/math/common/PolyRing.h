@@ -21,6 +21,7 @@ public:
 
   virtual Poly<T> &set1(Poly<T> &p, int deg, const T &get) const = 0;
   virtual Poly<T> subc(const Poly<T> &p, const T &a) const = 0;
+  virtual Poly<T> pointwise_mul(const Poly<T> &p, const Poly<T> &a) const = 0;
   virtual Poly<T> mulc(const Poly<T> &p, const T &a) const = 0;
   virtual Poly<T> divc(const Poly<T> &p, const T &a) const = 0;
   virtual std::vector<T> toVector(const Poly<T> &p, int sz) const = 0;
@@ -28,12 +29,15 @@ public:
   virtual Poly<T> integrate(const Poly<T> &p) const = 0;
   virtual Poly<T> monic(const Poly<T> &p) const = 0;
   virtual T eval(const Poly<T> &p, const T &a) const = 0;
+  virtual Poly<T> eval2(const Poly<T> &p, const Poly<T> &x) const = 0;
   virtual Poly<T> import_base(OPA_BG num) const = 0;
   virtual Poly<T> import(const Poly<T> &p) const = 0;
   virtual Poly<T> import(const std::vector<T> &px, bool rev = !kPolyRev) const = 0;
   virtual Poly<T> xma(const T &v) const = 0;
+  virtual Poly<T> xpa(const T &v) const = 0;
   virtual Poly<T> divxpw(const Poly<T> &p, u32 xpw) const = 0;
   virtual Poly<T> mulxpw(const Poly<T> &p, u32 xpw) const = 0;
+  virtual int get_xpw(const Poly<T> &p) const = 0;
 
   virtual Poly<T> resize(const Poly<T> &p, int size) const = 0;
   virtual Poly<T> rev(const Poly<T> &p, int target_size = 0) const = 0;
@@ -73,6 +77,11 @@ public:
   virtual ~PolyRing() {}
   virtual Poly<T> get_poly() const { return Poly<T>(this); }
 
+  virtual int get_xpw(const Poly<T> &p) const  {
+    REP(i, p.size()) if (!m_ring->isZ(p[i])) return i;
+    return -1;
+  }
+
   virtual bool isInv(const Poly<T> &a) const {
     return a.deg() == 0 && underlying_ring()->isInv(a[0]);
   }
@@ -91,6 +100,11 @@ public:
         res.poly[i + j] = m_ring->add(res.poly[i + j], m_ring->mul(a.poly[i], b.poly[j]));
       }
     return normalize(res);
+  }
+  virtual Poly<T> pointwise_mul(const Poly<T> &p, const Poly<T> &a) const {
+    Poly<T> res = p;
+    REP (i, std::min(p.size(), a.size())) res[i] = m_ring->mul(res[i], a[i]);
+    return res;
   }
 
   virtual Poly<T> mul(const Poly<T> &a, const Poly<T> &b) const {
@@ -249,6 +263,10 @@ public:
     return res;
   }
 
+  Poly<T> xpa(const T &v) const override {
+    return this->xma(m_ring->neg(v));
+  }
+
   Poly<T> xma(const T &v) const override {
     auto res = this->x();
     res[0] = this->m_ring->neg(v);
@@ -373,7 +391,18 @@ public:
     return res;
   }
 
-  virtual T eval(const Poly<T> &p, const T &a) const {
+  virtual Poly<T> eval2(const Poly<T> &p, const Poly<T> &x) const override{
+    Poly<T> res = this->getZ();
+    Poly<T> cur = this->getE();
+
+    for (int i = 0; i < p.size(); ++i) {
+      res = res + this->mulc(cur, p[i]);
+      cur = cur * x;
+    }
+    return res;
+  }
+
+  virtual T eval(const Poly<T> &p, const T &a) const override {
     T res = m_ring->getZ();
     T x = m_ring->getE();
     for (int i = 0; i < p.size(); ++i) {

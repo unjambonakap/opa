@@ -1,6 +1,6 @@
 #include <opa/algo/graph.h>
 
-#include <glib/strings/substitute.h>
+#include <absl/strings/substitute.h>
 #include <lemon/concepts/graph.h>
 #include <lemon/list_graph.h>
 #include <lemon/matching.h>
@@ -542,7 +542,7 @@ int FastGraph::get_edge_count(int a, int b, bool norm) const {
 
 std::string FastGraph::str() const {
   std::stringstream ss;
-  ss << glib::strings::Substitute("n_edges=$0, n_vertices=$1\n", n_edges(), vertices.size());
+  ss << absl::Substitute("n_edges=$0, n_vertices=$1\n", n_edges(), vertices.size());
   REP (i, vertices.size()) {
     int v = inormv(i);
     ss << RAW_OPA_DISP_VARS(i, v, deg(v), get_predecessors(v), get_successors(v)) << std::endl;
