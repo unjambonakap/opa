@@ -1,11 +1,12 @@
 #include <range/v3/all.hpp>
 
+
 #define STD_FUNC1(a) [&](auto x) { return a(x); }
 #define STD_FUNC2(a) [&](auto x0, auto x1) { return a(x0, x1); }
-#define STD_TSFX(content) (LQ::transform([&](auto x) { return (content); }))
-#define STD_TSFY(content) (LQ::transform([&](auto y) { return (content); }))
-#define STD_TSFXNORET(content) (LQ::transform([&](auto x) { (content); }))
-#define STD_FOREACHX(entries, content) (QQ::for_each(entries, [&](auto &x) { (content); }))
+#define STD_TSFX(content) (LQ::transform([&](const auto &x) { return (content); }))
+#define STD_TSFY(content) (LQ::transform([&](const auto &y) { return (content); }))
+#define STD_TSFXNORET(content) (LQ::transform([&](const auto &x) { (content); }))
+#define STD_FOREACHX(entries, content) (QQ::for_each(entries, [&](const auto &x) { (content); }))
 #define STD_FOREACHTUPLE2(entry,content)                                                                 \
   (QQ::for_each(entry, [&](const auto &tx) {                                                                     \
     auto &p0 = std::get<0>(tx);                                                                    \
@@ -14,7 +15,10 @@
     ;                                                                                              \
   }))
 #define STD_FUNCXY(content) ([&](const auto &x, const auto &y) { return (content); })
+#define STD_FUNCAB(content) ([&](const auto &a, const auto &b) { return (content); })
 #define STD_FUNCX(content) ([&](const auto &x) { return (content); })
+#define STD_FUNCY(content) ([&](const auto &y) { return (content); })
+
 #define STD_TSFTUPLE(content)                                                                      \
   (LQ::transform([&](auto tx) {                                                                    \
     auto &p0 = std::get<0>(tx);                                                                    \

@@ -8,6 +8,14 @@
 OPA_NM_MATH_COMMON
 template <class T> T get_unity(const T &a) { return 1; }
 
+template <typename T> struct GroupDesc {
+  opa::utils::BinaryOp<T> mul;
+  opa::utils::BinaryOp<T> div;
+  T e;
+
+  T multb(const std::vector<T> &a) const { return QQ::fold_left(a, e, mul); }
+};
+
 template <class T> class Ring : public virtual utils::Initable {
   bignum m_size;
   bignum m_car;
@@ -44,6 +52,17 @@ public:
   virtual const void *get_poly_ring() const {
     OPA_CHECK0(0);
     return nullptr;
+  }
+  GroupDesc<T> get_add_group() const {
+    return GroupDesc<T>{ .mul = STD_FUNC2(this->add),
+                         .div = STD_FUNC2(this->sub),
+                         .e = this->getZ() };
+  }
+
+  GroupDesc<T> get_mul_group() const {
+    return GroupDesc<T>{ .mul = STD_FUNC2(this->mul),
+                         .div = STD_FUNC2(this->div),
+                         .e = this->getE() };
   }
 
   Ring() {}
@@ -130,13 +149,10 @@ public:
   virtual bool compareRank(const T &a,
                            const T &b) const = 0; // return rank(a) < rank(b)
 
-  virtual T mulv(const std::vector<T> &a) const {
-    return this->mul(a);
-  }
+  virtual T mulv(const std::vector<T> &a) const { return this->mul(a); }
 
-  virtual T mul(const std::vector<T> &a) const {
-    return  QQ::fold_left(a, this->getE(), STD_FUNC2(this->mul));
-  }
+  virtual T mul(const std::vector<T> &a) const { return this->get_mul_group().multb(a); }
+  virtual T add(const std::vector<T> &a) const { return this->get_add_group().multb(a); }
 
   virtual T mul(const T &a, const T &b) const = 0;
   virtual T add(const T &a, const T &b) const = 0;
@@ -174,7 +190,8 @@ public:
     // eoi
 
   virtual int sel_for_stab(const std::vector<T> &tb) const {
-    REP(i,tb.size()) if (this->isInv(tb[i])) return i;
+    REP (i, tb.size())
+      if (this->isInv(tb[i])) return i;
     return -1;
   }
 

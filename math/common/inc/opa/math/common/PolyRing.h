@@ -10,87 +10,88 @@
 OPA_NM_MATH_COMMON
 constexpr bool kPolyRev = true;
 
-template <class T> class Poly;
+template <class T, class BaseRing = Ring<T> > class Poly;
 
-template <class T> class PolyRingOps {
+template <class T, class BaseRing = Ring<T> > class PolyRingOps {
 public:
+  typedef Poly<T, BaseRing> PT;
   virtual ~PolyRingOps() {}
 
-  virtual Poly<T> addc(const Poly<T> &p, const T &a) const = 0;
-  virtual Poly<T> &normalize(Poly<T> &a) const = 0;
+  virtual PT addc(const PT &p, const T &a) const = 0;
+  virtual PT &normalize(PT &a) const = 0;
 
-  virtual Poly<T> &set1(Poly<T> &p, int deg, const T &get) const = 0;
-  virtual Poly<T> subc(const Poly<T> &p, const T &a) const = 0;
-  virtual Poly<T> pointwise_mul(const Poly<T> &p, const Poly<T> &a) const = 0;
-  virtual Poly<T> mulc(const Poly<T> &p, const T &a) const = 0;
-  virtual Poly<T> divc(const Poly<T> &p, const T &a) const = 0;
-  virtual std::vector<T> toVector(const Poly<T> &p, int sz) const = 0;
-  virtual Poly<T> derivate(const Poly<T> &p) const = 0;
-  virtual Poly<T> integrate(const Poly<T> &p) const = 0;
-  virtual Poly<T> monic(const Poly<T> &p) const = 0;
-  virtual T eval(const Poly<T> &p, const T &a) const = 0;
-  virtual Poly<T> eval2(const Poly<T> &p, const Poly<T> &x) const = 0;
-  virtual Poly<T> import_base(OPA_BG num) const = 0;
-  virtual Poly<T> import(const Poly<T> &p) const = 0;
-  virtual Poly<T> import(const std::vector<T> &px, bool rev = !kPolyRev) const = 0;
-  virtual Poly<T> xma(const T &v) const = 0;
-  virtual Poly<T> xpa(const T &v) const = 0;
-  virtual Poly<T> divxpw(const Poly<T> &p, u32 xpw) const = 0;
-  virtual Poly<T> mulxpw(const Poly<T> &p, u32 xpw) const = 0;
-  virtual int get_xpw(const Poly<T> &p) const = 0;
+  virtual PT &set1(PT &p, int deg, const T &get) const = 0;
+  virtual PT subc(const PT &p, const T &a) const = 0;
+  virtual PT pointwise_mul(const PT &p, const PT &a) const = 0;
+  virtual PT mulc(const PT &p, const T &a) const = 0;
+  virtual PT divc(const PT &p, const T &a) const = 0;
+  virtual std::vector<T> toVector(const PT &p, int sz) const = 0;
+  virtual PT derivate(const PT &p) const = 0;
+  virtual PT integrate(const PT &p) const = 0;
+  virtual PT monic(const PT &p) const = 0;
+  virtual T eval(const PT &p, const T &a) const = 0;
+  virtual PT eval2(const PT &p, const PT &x) const = 0;
+  virtual PT import_base(OPA_BG num) const = 0;
+  virtual PT import(const PT &p) const = 0;
+  virtual PT import(const std::vector<T> &px, bool rev = !kPolyRev) const = 0;
+  virtual PT xma(const T &v) const = 0;
+  virtual PT xpa(const T &v) const = 0;
+  virtual PT divxpw(const PT &p, u32 xpw) const = 0;
+  virtual PT mulxpw(const PT &p, u32 xpw) const = 0;
+  virtual PT mulx(const PT &p, const T &v) const = 0;
+  virtual int get_xpw(const PT &p) const = 0;
 
-  virtual Poly<T> resize(const Poly<T> &p, int size) const = 0;
-  virtual Poly<T> rev(const Poly<T> &p, int target_size = 0) const = 0;
-  virtual Poly<T> xpwv(int d, const T &v) const = 0;
-  virtual Poly<T> xpw(int d) const = 0;
-  virtual Poly<T> get_poly() const = 0;
-  virtual Poly<T> interpolate(const std::vector<T> &xl, const std::vector<T> &yl) const = 0;
-  virtual T linear_root(const Poly<T> &p) const = 0;
+  virtual PT resize(const PT &p, int size) const = 0;
+  virtual PT rev(const PT &p, int target_size = 0) const = 0;
+  virtual PT xpwv(int d, const T &v) const = 0;
+  virtual PT xpw(int d) const = 0;
+  virtual PT get_poly() const = 0;
+  virtual PT interpolate(const std::vector<T> &xl, const std::vector<T> &yl) const = 0;
+  virtual T linear_root(const PT &p) const = 0;
 };
 
-template <class T, class BaseType = Ring<Poly<T> > >
-class PolyRing : public BaseType, public PolyRingOps<T> {
+template <class T, class BaseRing = Ring<T>, class BaseType = Ring<Poly<T, BaseRing> > >
+class PolyRing : public BaseType, public PolyRingOps<T, BaseRing> {
 protected:
-  friend class Poly<T>;
-  const Ring<T> *m_ring;
+  friend class Poly<T, BaseRing>;
+  const BaseRing *m_ring;
 
 public:
   int poly_rand_deg = -1;
   typedef T XType;
-  typedef Poly<T> PT;
-  typedef PolyRing<T, BaseType> CurType;
-  virtual const Ring<T> *underlying_ring() const { return m_ring; }
+  typedef Poly<T, BaseRing> PT;
+  typedef PolyRing<T, BaseRing, BaseType> CurType;
+  virtual const BaseRing *underlying_ring() const { return m_ring; }
 
   virtual const void *get_underlying_ring() const { return m_ring; }
   virtual const void *get_poly_ring() const { return (void *)get_poly_ring_impl(); }
-  const PolyRingOps<T> *get_poly_ring_impl() const { return this; }
+  const PolyRingOps<T, BaseRing> *get_poly_ring_impl() const { return this; }
 
-  void init(const Ring<T> *ring, bignum size = -1) {
+  void init(const BaseRing *ring, bignum size = -1) {
     m_ring = ring;
     BaseType::init(size, m_ring->getCar());
     OPA_CHECK0(m_ring != nullptr);
   }
 
   PolyRing() {}
-  PolyRing(const Ring<T> *ring) { init(ring); }
+  PolyRing(const BaseRing *ring) { init(ring); }
 
   virtual ~PolyRing() {}
-  virtual Poly<T> get_poly() const { return Poly<T>(this); }
+  virtual PT get_poly() const { return PT(this); }
 
-  virtual int get_xpw(const Poly<T> &p) const  {
-    REP(i, p.size()) if (!m_ring->isZ(p[i])) return i;
+  virtual int get_xpw(const PT &p) const {
+    REP (i, p.size())
+      if (!m_ring->isZ(p[i])) return i;
     return -1;
   }
 
-  virtual bool isInv(const Poly<T> &a) const {
-    return a.deg() == 0 && underlying_ring()->isInv(a[0]);
-  }
-  virtual Poly<T> inv(const Poly<T> &a) const { return constant(underlying_ring()->inv(a[0])); }
+  virtual bool isInv(const PT &a) const { return a.deg() == 0 && underlying_ring()->isInv(a[0]); }
+  virtual PT inv(const PT &a) const { return constant(underlying_ring()->inv(a[0])); }
 
-  virtual bool compareRank(const Poly<T> &a, const Poly<T> &b) const { return a.size() < b.size(); }
+  virtual bool compareRank(const PT &a, const PT &b) const { return a.size() < b.size(); }
 
-  virtual Poly<T> mulmoddeg(const Poly<T> &a, const Poly<T> &b, int deg) const {
-    Poly<T> res = get_poly();
+  virtual PT mulmoddeg(const PT &a, const PT &b, int deg) const {
+    PT res = get_poly();
     if (isZ(a) || isZ(b)) return res;
 
     res.poly.resize(std::max(0, a.size() + b.size() - 1), m_ring->getZ());
@@ -101,14 +102,14 @@ public:
       }
     return normalize(res);
   }
-  virtual Poly<T> pointwise_mul(const Poly<T> &p, const Poly<T> &a) const {
-    Poly<T> res = p;
+  virtual PT pointwise_mul(const PT &p, const PT &a) const {
+    PT res = p;
     REP (i, std::min(p.size(), a.size())) res[i] = m_ring->mul(res[i], a[i]);
     return res;
   }
 
-  virtual Poly<T> mul(const Poly<T> &a, const Poly<T> &b) const {
-    Poly<T> res = get_poly();
+  virtual PT mul(const PT &a, const PT &b) const {
+    PT res = get_poly();
     if (isZ(a) || isZ(b)) return res;
 
     res.poly.resize(std::max(0, a.size() + b.size() - 1), m_ring->getZ());
@@ -118,31 +119,31 @@ public:
     return normalize(res);
   }
 
-  Poly<T> mul_fft(const PT &a, const PT &b) const {
+  PT mul_fft(const PT &a, const PT &b) const {
     int n = a.deg() + b.deg() + 1;
     // OPA_CHECK0(m_ring->
     OPA_CHECK0(false);
-    return Poly<T>();
+    return PT();
   }
 
-  virtual Poly<T> add(const Poly<T> &a, const Poly<T> &b) const {
+  virtual PT add(const PT &a, const PT &b) const {
     if (a.size() < b.size()) return add(b, a);
-    Poly<T> res(a);
+    PT res(a);
     for (int i = 0; i < b.size(); ++i) res.get(i) = m_ring->add(res.get(i), b.get(i));
     return normalize(res);
   }
 
-  virtual Poly<T> sub(const Poly<T> &a, const Poly<T> &b) const { return add(a, this->neg(b)); }
+  virtual PT sub(const PT &a, const PT &b) const { return add(a, this->neg(b)); }
 
-  virtual Poly<T> &sadd(Poly<T> &a, const Poly<T> &b) const {
+  virtual PT &sadd(PT &a, const PT &b) const {
     a.poly.resize(std::max(a.size(), b.size()), m_ring->getZ());
     REP (i, b.size()) a.get(i) = m_ring->add(a.get(i), b.get(i));
     normalize(a);
     return a;
   }
 
-  virtual Poly<T> add(const Poly<T> &a, const Poly<T> &b, int shift) const {
-    Poly<T> res(a);
+  virtual PT add(const PT &a, const PT &b, int shift) const {
+    PT res(a);
     if (b.deg() == -1) return res;
     if (b.deg() + shift > a.deg()) res.poly.resize(b.deg() + shift + 1, m_ring->getZ());
     for (int i = 0; i < b.size(); ++i)
@@ -150,42 +151,42 @@ public:
     return normalize(res);
   }
 
-  virtual Poly<T> neg(const Poly<T> &a) const {
-    Poly<T> res(a);
+  virtual PT neg(const PT &a) const {
+    PT res(a);
     for (int i = 0; i < res.size(); ++i) res.get(i) = m_ring->neg(res.get(i));
     return res;
   }
 
-  virtual bool isZ(const Poly<T> &a) const { return a.deg() == -1; }
+  virtual bool isZ(const PT &a) const { return a.deg() == -1; }
 
-  virtual bool isE(const Poly<T> &a) const { return a.deg() == 0 && m_ring->isE(a.get(0)); }
+  virtual bool isE(const PT &a) const { return a.deg() == 0 && m_ring->isE(a.get(0)); }
 
-  virtual Poly<T> getZ() const { return get_poly(); }
+  virtual PT getZ() const { return get_poly(); }
 
-  virtual Poly<T> getE() const {
-    Poly<T> res = get_poly();
+  virtual PT getE() const {
+    PT res = get_poly();
     res.poly.push_back(m_ring->getE());
     return res;
   }
 
-  virtual Poly<T> getRand() const {
+  virtual PT getRand() const {
     OPA_CHECK0(poly_rand_deg != -1);
     return randDim(poly_rand_deg + 1);
   }
 
   virtual int get_poly_pos() const { return 1 + m_ring->get_poly_pos(); }
 
-  virtual Poly<T> importu32(u32 v) const { return constant(m_ring->importu32(v)); }
+  virtual PT importu32(u32 v) const { return constant(m_ring->importu32(v)); }
 
-  virtual bignum export_base(const Poly<T> &x) const {
+  virtual bignum export_base(const PT &x) const {
     OPA_BG res = 0;
     REPV (i, x.size()) {
       res = res * m_ring->getSize() + m_ring->export_base(x.get(i));
     }
     return res;
   }
-  virtual Poly<T> import_base(OPA_BG num) const {
-    Poly<T> res = get_poly();
+  virtual PT import_base(OPA_BG num) const {
+    PT res = get_poly();
     OPA_BG per_elem = m_ring->getSize();
     while (num > 0) {
       OPA_BG cur = num % per_elem;
@@ -195,92 +196,88 @@ public:
     return normalize(res);
   }
 
-  virtual Poly<T> import(const Poly<T> &p) const {
-    Poly<T> res = get_poly();
+  virtual PT import(const PT &p) const {
+    PT res = get_poly();
     for (int i = 0; i < p.size(); ++i) res.poly.push_back(m_ring->import(p.poly[i]));
     return normalize(res);
   }
 
-  virtual std::vector<Poly<T> > import_vecs(const std::vector<Poly<T> > &plist) const {
-    std::vector<Poly<T> > res;
+  virtual std::vector<PT> import_vecs(const std::vector<PT> &plist) const {
+    std::vector<PT> res;
     for (auto &p : plist) res.push_back(this->import(p));
     return res;
   }
 
-  Poly<T> import_vec(const std::vector<T> &px, bool rev = !kPolyRev) const {
-    return import(px, rev);
-  }
+  PT import_vec(const std::vector<T> &px, bool rev = !kPolyRev) const { return import(px, rev); }
 
-  virtual Poly<T> import(const std::vector<T> &px, bool rev = !kPolyRev) const {
-    Poly<T> res = get_poly();
-    res.poly = px;
+  virtual PT import(const std::vector<T> &px, bool rev = !kPolyRev) const {
+    PT res = get_poly();
+    res.poly = px | STD_TSFX(m_ring->import(x)) | STD_VEC;
     if (rev) std::reverse(ALL(res.poly));
     return normalize(res);
   }
 
-  std::vector<Poly<T> > import_consts(const std::vector<T> &consts) const {
-    std::vector<Poly<T> > res;
+  std::vector<PT> import_consts(const std::vector<T> &consts) const {
+    std::vector<PT> res;
     for (auto &e : consts) {
       res.emplace_back(this->constant(e));
     }
     return res;
   }
 
-  Poly<T> &normalize(Poly<T> &p) const {
+  PT &normalize(PT &p) const {
     OPA_CHECK0(m_ring != nullptr);
     while (p.size() && m_ring->isZ(p.poly.back())) p.poly.pop_back();
     return p;
   }
 
-  Poly<T> &selfrev(Poly<T> &p, int target_size = -1) const {
+  PT &selfrev(PT &p, int target_size = -1) const {
     if (target_size != -1) p.poly.resize(target_size, m_ring->getZ());
     for (int i = 0; i < p.size() / 2; ++i) std::swap(p.poly[i], p.poly[p.size() - 1 - i]);
     return normalize(p);
   }
 
-  Poly<T> rev(const Poly<T> &p, int target_size = -1) const override {
-    Poly<T> res = p;
+  PT rev(const PT &p, int target_size = -1) const override {
+    PT res = p;
     this->selfrev(res, target_size);
     return res;
   }
 
-  Poly<T> &set1(Poly<T> &p, int deg, const T &get) const override {
+  PT &set1(PT &p, int deg, const T &get) const override {
     if (p.size() <= deg) p.poly.resize(deg + 1, m_ring->getZ());
     p.poly[deg] = get;
     normalize(p);
     return p;
   }
 
-  Poly<T> &sresize(Poly<T> &p, int size) const {
+  PT &sresize(PT &p, int size) const {
     p.poly.resize(size, m_ring->getZ());
     normalize(p);
     return p;
   }
 
-  Poly<T> resize(const Poly<T> &p, int size) const override {
-    Poly<T> res = p;
+  PT resize(const PT &p, int size) const override {
+    PT res = p;
     this->sresize(res, size);
     return res;
   }
 
-  Poly<T> xpa(const T &v) const override {
-    return this->xma(m_ring->neg(v));
-  }
+  PT xpa(const T &v) const override { return this->xma(m_ring->neg(v)); }
 
-  Poly<T> xma(const T &v) const override {
+  PT xma(const T &v) const override {
     auto res = this->x();
     res[0] = this->m_ring->neg(v);
     return res;
   }
 
-  Poly<T> interpolate(const std::vector<T> &xl, const std::vector<T> &yl) const override {
+  PT interpolate(const std::vector<T> &xl, const std::vector<T> &yl) const override {
     std::unordered_set<T> sx(ALL(xl));
     OPA_CHECK0(sx.size() == xl.size()); // no dups
     OPA_CHECK0(xl.size() == yl.size());
-    Poly<T> mulp = this->getE();
+    PT mulp = this->getE();
     REP (i, xl.size()) mulp = this->mul(mulp, this->xma(xl[i]));
 
-    Poly<T> res = this->getZ();
+    PT res = this->getZ();
     REP (i, xl.size()) {
       auto h = mulp / this->xma(xl[i]);
       res = res + h * (m_ring->div(yl[i], h(xl[i])));
@@ -288,52 +285,48 @@ public:
     return res;
   }
 
-  Poly<T> &mul1(Poly<T> &p, int deg, const T &u) const {
+  PT &mul1(PT &p, int deg, const T &u) const {
     if (p.size() > deg) p.poly[deg] = m_ring->mul(p.poly[deg], u);
     normalize(p);
     return p;
   }
 
-  Poly<T> &add1(Poly<T> &p, int deg, const T &u) const {
+  PT &add1(PT &p, int deg, const T &u) const {
     if (p.size() <= deg) p.poly.resize(deg + 1, m_ring->getZ());
     p.poly[deg] = m_ring->add(p.poly[deg], u);
     normalize(p);
     return p;
   }
 
-  virtual std::vector<T> toVector(const Poly<T> &p, int sz) const {
+  virtual std::vector<T> toVector(const PT &p, int sz) const {
     std::vector<T> res = p.toVector();
     res.resize(sz, m_ring->getZ());
     return res;
   }
 
-  Poly<T> mulmod(const Poly<T> &a, const Poly<T> &b, const Poly<T> &pmod) const {
-    return this->mod(mul(a, b), pmod);
-  }
+  PT mulmod(const PT &a, const PT &b, const PT &pmod) const { return this->mod(mul(a, b), pmod); }
 
-  Poly<T> addmod(const Poly<T> &a, const Poly<T> &b, const Poly<T> &pmod) const {
-    return this->mod(add(a, b), pmod);
-  }
+  PT addmod(const PT &a, const PT &b, const PT &pmod) const { return this->mod(add(a, b), pmod); }
 
-  std::vector<std::pair<Poly<T>, int> > factor2(Poly<T> a, int deg_lim = -1) const {
-    std::vector<Poly<T> > factors = factor(a, deg_lim);
-    std::map<Poly<T>, int> tmp;
+  std::vector<std::pair<PT, int> > factor2(PT a, int deg_lim = -1) const {
+    std::vector<PT> factors = factor(a, deg_lim);
+    std::map<PT, int> tmp;
     for (auto &e : factors) {
       ++tmp[e];
     }
-    std::vector<std::pair<Poly<T>, int> > res;
+    std::vector<std::pair<PT, int> > res;
     for (auto &e : tmp) {
       res.push_back(e);
     }
     return res;
   }
 
-  bool isIrred(const Poly<T> &a) const {
-    std::vector<Poly<T> > res = factor(a);
+  bool isIrred(const PT &a) const {
+    std::vector<PT> res = factor(a);
     return res.size() == 1;
   }
 
-  Poly<T> rand(int deg) const {
+  PT rand(int deg) const {
     assert(deg >= 0);
 
     std::vector<T> tb(deg + 1);
@@ -342,7 +335,7 @@ public:
     return import(tb);
   }
 
-  Poly<T> randDim(int dim) const {
+  PT randDim(int dim) const {
     assert(dim > 0);
 
     std::vector<T> tb(dim);
@@ -350,50 +343,50 @@ public:
     return import(tb);
   }
 
-  Poly<T> x() const {
-    Poly<T> res = get_poly();
+  PT x() const {
+    PT res = get_poly();
     res.poly.push_back(m_ring->getZ());
     res.poly.push_back(m_ring->getE());
     return res;
   }
 
-  virtual Poly<T> xpwv(int d, const T &v) const {
-    Poly<T> res = xpw(d);
+  virtual PT xpwv(int d, const T &v) const {
+    PT res = xpw(d);
     res.poly[d] = v;
     normalize(res);
     return res;
   }
 
-  virtual Poly<T> xpw(int d) const {
-    Poly<T> res = get_poly();
+  virtual PT xpw(int d) const {
+    PT res = get_poly();
     if (d < 0) return res;
     res.poly.resize(d + 1, m_ring->getZ());
     res.poly[d] = m_ring->getE();
     return res;
   }
 
-  Poly<T> E() const {
-    Poly<T> res = get_poly();
+  PT E() const {
+    PT res = get_poly();
     res.poly.push_back(m_ring->getE());
     return res;
   }
 
-  Poly<T> constant(const T &a) const {
-    Poly<T> res = get_poly();
+  PT constant(const T &a) const {
+    PT res = get_poly();
     res.poly.push_back(a);
     normalize(res);
     return res;
   }
 
-  std::vector<T> eval_batch(const Poly<T> &p, const std::vector<T> &tb) const {
+  std::vector<T> eval_batch(const PT &p, const std::vector<T> &tb) const {
     std::vector<T> res(tb.size());
     REP (i, tb.size()) res[i] = this->eval(p, tb[i]);
     return res;
   }
 
-  virtual Poly<T> eval2(const Poly<T> &p, const Poly<T> &x) const override{
-    Poly<T> res = this->getZ();
-    Poly<T> cur = this->getE();
+  virtual PT eval2(const PT &p, const PT &x) const override {
+    PT res = this->getZ();
+    PT cur = this->getE();
 
     for (int i = 0; i < p.size(); ++i) {
       res = res + this->mulc(cur, p[i]);
@@ -402,7 +395,7 @@ public:
     return res;
   }
 
-  virtual T eval(const Poly<T> &p, const T &a) const override {
+  virtual T eval(const PT &p, const T &a) const override {
     T res = m_ring->getZ();
     T x = m_ring->getE();
     for (int i = 0; i < p.size(); ++i) {
@@ -412,17 +405,17 @@ public:
     return res;
   }
 
-  bool is_monic(const Poly<T> &p) const {
+  bool is_monic(const PT &p) const {
     if (p.deg() == -1) return false;
     return m_ring->isE(p[p.deg()]);
   }
 
-  virtual Poly<T> addc(const Poly<T> &p, const T &a) const {
-    Poly<T> res = p;
+  virtual PT addc(const PT &p, const T &a) const {
+    PT res = p;
     return saddc(res, a);
   }
 
-  Poly<T> &saddc(Poly<T> &p, const T &a) const {
+  PT &saddc(PT &p, const T &a) const {
     if (isZ(p)) {
       p = this->constant(a);
     } else {
@@ -432,91 +425,102 @@ public:
     return p;
   }
 
-  Poly<T> &ssubc(Poly<T> &p, const T &a) const { return saddc(p, m_ring->neg(a)); }
+  PT &ssubc(PT &p, const T &a) const { return saddc(p, m_ring->neg(a)); }
 
-  virtual Poly<T> subc(const Poly<T> &p, const T &a) const {
-    Poly<T> res = p;
+  virtual PT subc(const PT &p, const T &a) const {
+    PT res = p;
     return ssubc(res, a);
   }
 
-  virtual Poly<T> mulc(const Poly<T> &p, const T &a) const {
-    Poly<T> res = p;
+  virtual PT mulc(const PT &p, const T &a) const {
+    PT res = p;
     return smulc(res, a);
   }
 
-  Poly<T> &smulc(Poly<T> &p, const T &a) const {
+  PT &smulc(PT &p, const T &a) const {
     REP (i, p.deg() + 1) p.get(i) = m_ring->mul(a, p.get(i));
     return normalize(p);
   }
 
-  Poly<T> &sdivc(Poly<T> &p, const T &a) const {
+  PT &sdivc(PT &p, const T &a) const {
     REP (i, p.deg() + 1) p.get(i) = m_ring->div(p.get(i), a);
     return p;
   }
 
-  virtual Poly<T> divc(const Poly<T> &p, const T &a) const {
-    Poly<T> res = p;
+  virtual PT divc(const PT &p, const T &a) const {
+    PT res = p;
     return sdivc(res, a);
   }
 
-  virtual Poly<T> mulxpw(const Poly<T> &p, u32 xpw) const override {
+  virtual PT mulxpw(const PT &p, u32 xpw) const override {
     std::vector<T> res(p.poly.size() + xpw, this->underlying_ring()->getZ());
     REP (i, p.poly.size()) res[i + xpw] = p.poly[i];
     return this->import_vec(res);
   }
 
-  virtual Poly<T> divxpw(const Poly<T> &p, u32 xpw) const override {
+  virtual PT mulx(const PT &p, const T &v) const {
+    // x => x*v
+    std::vector<T> res(p.poly.size());
+    T x = this->underlying_ring()->getE();
+    REP (i, p.poly.size()) {
+      res[i] = this->underlying_ring()->mul(p.poly[i], x);
+      x = this->underlying_ring()->mul(x, v);
+    }
+    return this->import_vec(res);
+  }
+
+  virtual PT divxpw(const PT &p, u32 xpw) const override {
     std::vector<T> res;
     FOR (i, xpw, p.poly.size()) res.pb(p[i]);
     return this->import_vec(res);
   }
 
-  Poly<T> combine_lh(const Poly<T> xl, const Poly<T> &xh, int l) const {
+  PT combine_lh(const PT xl, const PT &xh, int l) const {
     std::vector<T> res = xl.poly;
     res.resize(l + xh.poly.size(), m_ring->getZ());
     REP (i, xh.poly.size()) res[i + l] = xh[i];
     return import_vec(res);
   }
 
-  Poly<T> monic(const Poly<T> &p) const {
-    Poly<T> res = p;
+  PT monic(const PT &p) const {
+    PT res = p;
     return smonic(res);
   }
 
-  Poly<T> &smonic(Poly<T> &p) const {
+  PT &smonic(PT &p) const {
     OPA_CHECK0(p.deg() >= 0);
     OPA_CHECK(m_ring->isInv(p.lc()), p);
     return smulc(p, m_ring->inv(p.lc()));
   }
 
-  virtual T linear_root(const Poly<T> &p) const {
+  virtual T linear_root(const PT &p) const {
     OPA_CHECK0(p.deg() == 1);
-    Poly<T> t2 = this->monic(p);
+    PT t2 = this->monic(p);
     return m_ring->neg(t2[0]);
   }
 
-  virtual Poly<T> integrate(const Poly<T> &p) const {
+  virtual PT integrate(const PT &p) const {
     if (p.deg() < 0) return this->getZ();
 
-    Poly<T> res = xpw(p.deg() + 1);
+    PT res = xpw(p.deg() + 1);
     REP (i, p.deg()) {
       res[i + 1] = m_ring->div(p[i], m_ring->importu32(i + 1));
     }
     return normalize(res);
   }
 
-  virtual Poly<T> derivate(const Poly<T> &p) const {
-    Poly<T> res = xpw(p.deg() - 1);
+  virtual PT derivate(const PT &p) const {
+    PT res = xpw(p.deg() - 1);
     REP (i, p.deg()) {
       res[i] = m_ring->mul(m_ring->importu32(i + 1), p[i + 1]);
     }
     return normalize(res);
   }
 
-  bool ediv(const Poly<T> &a, const Poly<T> &b, Poly<T> *q, Poly<T> *r) const {
+  bool ediv(const PT &a, const PT &b, PT *q, PT *r) const {
     if (b.deg() < 0) return false;
-    Poly<T> qq = get_poly();
-    Poly<T> rr = a;
+    PT qq = get_poly();
+    PT rr = a;
 
     if (0 && get_poly_pos() == 2) {
       puts("\nDO EDIV >>");
@@ -551,7 +555,7 @@ public:
     return true;
   }
 
-  void equalDegFactor(Poly<T> a, int deg, std::vector<Poly<T> > &res) const {
+  void equalDegFactor(PT a, int deg, std::vector<PT> &res) const {
     bignum q = m_ring->getSize();
 
     if (a.deg() == deg) {
@@ -577,8 +581,8 @@ public:
 
     while (1) {
 
-      Poly<T> spe_root;
-      Poly<T> a_special = a;
+      PT spe_root;
+      PT a_special = a;
 
       if (special_case) {
         // create artificial third factor
@@ -586,13 +590,13 @@ public:
         a_special = a * spe_root;
       }
 
-      Poly<T> b = this->rand(a_special.deg() - 1);
+      PT b = this->rand(a_special.deg() - 1);
 
       if (m_ring->getSize().get_bit(0)) {
         b = this->faste(b, pw, a);
         b = add(b, getE());
       } else {
-        Poly<T> tmp = b;
+        PT tmp = b;
         REP (i, pw.getu32() - 1) {
           tmp = this->mod(mul(tmp, tmp), a_special);
           b = add(b, tmp);
@@ -601,7 +605,7 @@ public:
 
       b = this->gcd(a, b);
       if (b.deg() > 0 && b.deg() < a.deg()) {
-        Poly<T> q = this->div(a, b);
+        PT q = this->div(a, b);
         equalDegFactor(q, deg, res);
         equalDegFactor(b, deg, res);
         return;
@@ -609,16 +613,16 @@ public:
     }
   }
 
-  std::vector<Poly<T> > factor(Poly<T> a, int deg_lim = -1) const {
-    std::vector<Poly<T> > res;
-    Poly<T> rem = x();
+  std::vector<PT> factor(PT a, int deg_lim = -1) const {
+    std::vector<PT> res;
+    PT rem = x();
     if (deg_lim == -1) deg_lim = a.deg();
     deg_lim = std::min(deg_lim, a.deg() / 2);
 
     for (int i = 1; i <= deg_lim; ++i) {
       rem = this->faste(rem, m_ring->getSize(), a);
 
-      Poly<T> tmp = add(rem, neg(x()));
+      PT tmp = add(rem, neg(x()));
 
       while (1) {
         tmp = this->gcd(a, tmp);
@@ -747,6 +751,6 @@ public:
   }
 };
 
-template <class T> using PolyRingBaseField = PolyRing<T, Field<Poly<T> > >;
+template <class T> using PolyRingBaseField = PolyRing<T, Ring<T>, Field<Poly<T> > >;
 
 OPA_NM_MATH_COMMON_END

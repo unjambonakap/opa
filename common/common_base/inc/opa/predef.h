@@ -5,8 +5,8 @@ namespace math {
 namespace common {
 class Float;
 }
-}
-}
+} // namespace math
+} // namespace opa
 
 namespace std {
 opa::math::common::Float ceil(const opa::math::common::Float &a);
@@ -24,6 +24,5 @@ opa::math::common::Float acos(const opa::math::common::Float &a);
 opa::math::common::Float asin(const opa::math::common::Float &a);
 opa::math::common::Float atan(const opa::math::common::Float &a);
 opa::math::common::Float abs(const opa::math::common::Float &a);
-opa::math::common::Float pow(const opa::math::common::Float &a,
-                             const opa::math::common::Float &b);
-}
+opa::math::common::Float pow(const opa::math::common::Float &a, const opa::math::common::Float &b);
+} // namespace std

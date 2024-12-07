@@ -3,7 +3,7 @@
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 
-GF_p::GF_p(u32 n, S64Factors factors) : GF_pT(n, false) {
+GF_p::GF_p(u32 n, S64Factors factors) : GF_pT(n, false), _mgc(n) {
   m_factors = to_bgfactors(factors);
   init(n);
 }

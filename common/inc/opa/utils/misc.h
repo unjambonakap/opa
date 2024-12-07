@@ -312,5 +312,7 @@ static CircularView<ContainerT>  CreateCircularView(ContainerT &container){
   return CircularView<ContainerT>(container);
 }
 
+template <typename T> using BinaryOp = std::function<T(const T &, const T &)>;
+
 } // namespace utils
 } // namespace opa

@@ -85,7 +85,7 @@ typedef opa::math::common::BGFactors BGFactors;
 %include "opa/math/common/PolyRing.h"
 %template(PolyRingOps_u32) opa::math::common::PolyRingOps<u32>;
 %template(PolyRing_u32) opa::math::common::PolyRing<u32>;
-%template(PolyRing_u32_F) opa::math::common::PolyRing<u32, opa::math::common::Field<opa::math::common::Poly<u32>>>;
+%template(PolyRing_u32_F) opa::math::common::PolyRing<u32, opa::math::common::Ring<u32>, opa::math::common::Field<opa::math::common::Poly<u32>>>;
 %template(PolyRingOps_d) opa::math::common::PolyRingOps<double>;
 %template(PolyRing_d) opa::math::common::PolyRing<double>;
 %template(PolyRing_float) opa::math::common::PolyRing<opa::math::common::Float>;
@@ -95,7 +95,7 @@ typedef opa::math::common::BGFactors BGFactors;
 
 %include "opa/math/common/PolyModRing.h"
 %template(PolyModRing_u32) opa::math::common::PolyModRing<u32>;
-%template(PolyModRing_u32_F) opa::math::common::PolyModRing<u32, opa::math::common::Field<opa::math::common::Poly<u32>>>;
+%template(PolyModRing_u32_F) opa::math::common::PolyModRing<u32, opa::math::common::Ring<u32>, opa::math::common::Field<opa::math::common::Poly<u32>>>;
 %template(PolyModField_u32) opa::math::common::PolyModField<u32>;
 
 %template(GF_pT_u32) opa::math::common::GF_pT<u32>;

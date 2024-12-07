@@ -1,6 +1,7 @@
 #pragma once
 
 #include <opa/math/common/Field.h>
+#include <opa/utils/hash.h>
 
 OPA_NAMESPACE_DECL3(opa, math, common)
 template <class T> class FractionField;

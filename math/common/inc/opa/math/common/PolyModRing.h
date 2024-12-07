@@ -9,51 +9,51 @@
 
 OPA_NM_MATH_COMMON
 
-template <class T> class Poly;
+template <class T, class BaseRing> class Poly;
 
-template <class T, class BaseType = Ring<Poly<T> > >
-class PolyModRing : public PolyRing<T, BaseType> {
+template <class T, class BaseRing = Ring<T>, class BaseType = Ring<Poly<T, BaseRing> > >
+class PolyModRing : public PolyRing<T, BaseRing, BaseType> {
 public:
-  typedef PolyRing<T, BaseType> PolyRingBase;
-  Poly<T> m_mod;
+  typedef Poly<T, BaseRing> PT;
+  typedef PolyRing<T, BaseRing, BaseType> PolyRingBase;
   PolyRingBase m_pur_pr;
+  PT m_mod;
 
 public:
   typedef T XType;
-  typedef Poly<T> PT;
 
-  void init(const Ring<T> *ring, const Poly<T> &mod, bignum order = -1) {
+  void init(const BaseRing *ring, const PT &mod, bignum order = -1) {
     bignum size = -1;
     if (ring->getCar() != -1) size = ring->getCar().pow(mod.deg());
     m_pur_pr.init(ring);
     m_mod = to_pur(mod);
-    PolyRing<T, BaseType>::init(ring, size);
+    PolyRingBase::init(ring, size);
   }
 
   PolyModRing() {}
-  PolyModRing(const Ring<T> *ring, const Poly<T> &mod) { init(ring, mod); }
+  PolyModRing(const BaseRing *ring, const PT &mod) { init(ring, mod); }
 
   const PolyRingBase *pur_pr() const { return &m_pur_pr; }
 
-  virtual bool isInv(const Poly<T> &a) const {
-    //OPA_DISP0(m_pur_pr.gcd(to_pur(a), m_mod), a, m_mod);
-    Poly<T> tmp =  m_pur_pr.gcd(to_pur(a), m_mod);
+  virtual bool isInv(const PT &a) const {
+    // OPA_DISP0(m_pur_pr.gcd(to_pur(a), m_mod), a, m_mod);
+    PT tmp = m_pur_pr.gcd(to_pur(a), m_mod);
     return (tmp.deg() == 0 && this->m_ring->isInv(tmp[0]));
   }
 
-  virtual Poly<T> inv(const Poly<T> &a) const {
-    Poly<T> u, v;
+  virtual PT inv(const PT &a) const {
+    PT u, v;
     m_pur_pr.egcd(to_pur(a), m_mod, u, v);
     return sto_ipur(u);
   }
 
-  virtual Poly<T> mul(const Poly<T> &a, const Poly<T> &b) const {
-    Poly<T> res;
+  virtual PT mul(const PT &a, const PT &b) const {
+    PT res;
     res = m_pur_pr.mulmod(to_pur(a), to_pur(b), m_mod);
     return sto_ipur(res);
   }
 
-  bool ediv(const Poly<T> &a, const Poly<T> &b, Poly<T> *q, Poly<T> *r) const {
+  bool ediv(const PT &a, const PT &b, PT *q, PT *r) const {
     if (b.deg() < 0) return false;
     if (!isInv(b)) return false;
 
@@ -64,33 +64,31 @@ public:
     return true;
   }
 
-  Poly<T> import_base(OPA_BG num) const {
-    return import(m_pur_pr.import_base(num));
-  }
+  PT import_base(OPA_BG num) const { return import(m_pur_pr.import_base(num)); }
 
-  Poly<T> sto_pur(Poly<T> &res) const {
+  PT sto_pur(PT &res) const {
     res.unsafe_change_ring(&m_pur_pr);
     return res;
   }
 
-  Poly<T> sto_ipur(Poly<T> &res) const {
+  PT sto_ipur(PT &res) const {
     res.unsafe_change_ring(this);
     return res;
   }
 
-  Poly<T> to_pur(const Poly<T> &t) const {
-    Poly<T> res = t;
+  PT to_pur(const PT &t) const {
+    PT res = t;
     res.unsafe_change_ring(&m_pur_pr);
     return res;
   }
 
-  Poly<T> to_ipur(const Poly<T> &t) const {
-    Poly<T> res = t;
+  PT to_ipur(const PT &t) const {
+    PT res = t;
     res.unsafe_change_ring(this);
     return res;
   }
 
-  Poly<T> &reduce_pur(Poly<T> &p) const {
+  PT &reduce_pur(PT &p) const {
     if (p.deg() >= m_mod.deg()) {
       p = m_pur_pr.mod(sto_pur(p), m_mod);
       sto_ipur(p);
@@ -98,7 +96,7 @@ public:
     return p;
   }
 
-  Poly<T> &reduce_ipur(Poly<T> &p) const {
+  PT &reduce_ipur(PT &p) const {
     if (p.deg() >= m_mod.deg()) {
       sto_pur(p);
       reduce_pur(p);
@@ -106,40 +104,39 @@ public:
     return p;
   }
 
-  Poly<T> import(const Poly<T> &p) const {
-    Poly<T> tmp = m_pur_pr.import(p);
+  PT import(const PT &p) const {
+    PT tmp = m_pur_pr.import(p);
     return reduce_pur(tmp);
   }
 
-  Poly<T> import(const std::vector<T> &px, bool rev = false) const {
-    Poly<T> tmp = m_pur_pr.import(px, rev);
+  PT import(const std::vector<T> &px, bool rev = false) const {
+    PT tmp = m_pur_pr.import(px, rev);
     return reduce_pur(tmp);
   }
 
-  Poly<T> &set1(Poly<T> &p, int deg, const T &get) const {
+  PT &set1(PT &p, int deg, const T &get) const {
     PolyRingBase::set1(p, deg, get);
     return reduce_ipur(p);
   }
 
-  virtual Poly<T> getRand() const { return this->rand(m_mod.deg() - 1); }
+  virtual PT getRand() const { return this->rand(m_mod.deg() - 1); }
 
-  Poly<T> xpwv(int d, const T &v) const {
+  PT xpwv(int d, const T &v) const {
     PT tmp = PolyRingBase::xpwv(d, v);
     return reduce_ipur(tmp);
   }
 
-  Poly<T> xpw(int d) const {
+  PT xpw(int d) const {
     PT tmp = PolyRingBase::xpw(d);
     return reduce_ipur(tmp);
   }
-  Poly<T> getRandRaw() const { return this->randDim(this->m_mod.deg()); }
+  PT getRandRaw() const { return this->randDim(this->m_mod.deg()); }
 };
 
-template <class T>
-class PolyModField : public PolyModRing<T, Field<Poly<T> > > {
+template <class T> class PolyModField : public PolyModRing<T, Ring<T>, Field<Poly<T> > > {
 public:
   void init(const Ring<T> *ring, const Poly<T> &mod) {
-    PolyModRing<T, Field<Poly<T> > >::init(ring, mod);
+    PolyModRing<T, Ring<T>, Field<Poly<T> > >::init(ring, mod);
   }
 
   virtual Poly<T> inv(const Poly<T> &a) const {
@@ -150,8 +147,7 @@ public:
     return this->sto_ipur(u);
   }
 
-  virtual bool ediv(const Poly<T> &a, const Poly<T> &b, Poly<T> *q,
-                    Poly<T> *r) const {
+  virtual bool ediv(const Poly<T> &a, const Poly<T> &b, Poly<T> *q, Poly<T> *r) const {
     return Field<Poly<T> >::ediv(a, b, q, r);
   }
 };

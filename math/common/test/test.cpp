@@ -1,5 +1,7 @@
+#define OPA_HEX 0
 #include <gtest/gtest.h>
 
+#include "opa/math/common/crt_fft.h"
 #include <opa/math/common/BCHCode.h>
 #include <opa/math/common/CyclicCode.h>
 #include <opa/math/common/FFT.h>
@@ -42,8 +44,7 @@ template <class T> bool has_linear_term(const std::vector<T> &tb) {
   return false;
 }
 
-template <class T>
-std::vector<T> get_linear_roots(const std::vector<Poly<T> > &tb) {
+template <class T> std::vector<T> get_linear_roots(const std::vector<Poly<T> > &tb) {
   std::vector<T> res;
   for (auto &e : tb)
     if (e.deg() == 1) res.push_back(e.linear_root());
@@ -56,14 +57,12 @@ template <class T> T extract(const Matrix<T> &m, const Matrix<T> &extractor) {
   const Ring<T> *ring = m.get_ring();
   T res = ring->getZ();
   REP (i, m.getN())
-    REP (j, m.getM())
-      res = ring->add(res, ring->mul(m.get(i, j), extractor.get(i, j)));
+    REP (j, m.getM()) res = ring->add(res, ring->mul(m.get(i, j), extractor.get(i, j)));
 
   return res;
 }
 
-template <class T>
-T get_simple(const Matrix<T> &m, const Matrix<T> &extractor, const bignum &p) {
+template <class T> T get_simple(const Matrix<T> &m, const Matrix<T> &extractor, const bignum &p) {
   Matrix<T> m2 = m.faste(p);
   T val = extract(m2, extractor);
   return val;
@@ -168,47 +167,46 @@ TEST(PolyTest2, PolyTest) {
   //        \n('c2',
   // 245544492996888727164841815357590445824184017819212225646984254796592976347385430003123536033004742032759416589790020081404988144261423483934413815011827391460021382138980857256740580080876659438050231270325521568176877577234140954433459361598359898768186238850013895811016147701584167992547871319386741583536303)
   //        \n('sol', None)\n"
-  OPA_BG n = OPA_BG::fromstr(
-    "740765548979273098467598803958212385151570053921334237430171491357308"
-    "4503059389253950580485715586133640029480042911355182403295727895254874"
-    "9514787077961937998286501132877556585004824852686337437602429692193779"
-    "8169737860584047065593928295857417452372744936947544816804233701992919"
-    "611488140593397159150152160920639",
-    10);
+  OPA_BG n =
+    OPA_BG::fromstr("740765548979273098467598803958212385151570053921334237430171491357308"
+                    "4503059389253950580485715586133640029480042911355182403295727895254874"
+                    "9514787077961937998286501132877556585004824852686337437602429692193779"
+                    "8169737860584047065593928295857417452372744936947544816804233701992919"
+                    "611488140593397159150152160920639",
+                    10);
 
   OPA_BG e = 3;
 
-  OPA_BG c1 = OPA_BG::fromstr(
-    "3214519130579001423484366215630791538984360328374128540312466977904106"
-    "0204014733217986990173750143975072666459209679539134924187870591032786"
-    "1241059454661619432324907631836944052325945666694131891489395959762339"
-    "2774103816929751977845625654097417277800431085064589305404594113901105"
-    "27535022558117942647833465024816",
-    10);
+  OPA_BG c1 =
+    OPA_BG::fromstr("3214519130579001423484366215630791538984360328374128540312466977904106"
+                    "0204014733217986990173750143975072666459209679539134924187870591032786"
+                    "1241059454661619432324907631836944052325945666694131891489395959762339"
+                    "2774103816929751977845625654097417277800431085064589305404594113901105"
+                    "27535022558117942647833465024816",
+                    10);
 
-  OPA_BG c2 = OPA_BG::fromstr(
-    "2455444929968887271648418153575904458241840178192122256469842547965929"
-    "7634738543000312353603300474203275941658979002008140498814426142348393"
-    "4413815011827391460021382138980857256740580080876659438050231270325521"
-    "5681768775772341409544334593615983598987681862388500138958110161477015"
-    "84167992547871319386741583536303",
-    10);
+  OPA_BG c2 =
+    OPA_BG::fromstr("2455444929968887271648418153575904458241840178192122256469842547965929"
+                    "7634738543000312353603300474203275941658979002008140498814426142348393"
+                    "4413815011827391460021382138980857256740580080876659438050231270325521"
+                    "5681768775772341409544334593615983598987681862388500138958110161477015"
+                    "84167992547871319386741583536303",
+                    10);
   OPA_BG sol = OPA_BG::fromu64(2449967717ll);
 
-  OPA_BG expected_m = OPA_BG::fromstr(
-    "2782365860388557286310809887683786504528738655865781703464278179636746"
-    "2742441257825190950207363331440302148015785208096779553247828949275151"
-    "5506113530367705961747287052814906081099788439953915040340986457201263"
-    "045837650841031752009184680515477175397898656180618898643429",
-    10);
+  OPA_BG expected_m =
+    OPA_BG::fromstr("2782365860388557286310809887683786504528738655865781703464278179636746"
+                    "2742441257825190950207363331440302148015785208096779553247828949275151"
+                    "5506113530367705961747287052814906081099788439953915040340986457201263"
+                    "045837650841031752009184680515477175397898656180618898643429",
+                    10);
 
   R r(n);
   PR pr(&r);
 
   Poly p1 = pr.sub(pr.faste(pr.x(), e), pr.constant(c1));
   cout << pr.constant(sol) << endl;
-  Poly p2 =
-    pr.sub(pr.faste(pr.add(pr.x(), pr.constant(sol)), e), pr.constant(c2));
+  Poly p2 = pr.sub(pr.faste(pr.add(pr.x(), pr.constant(sol)), e), pr.constant(c2));
   cout << pr.eval(p1, expected_m) << endl;
   cout << pr.eval(p2, expected_m) << endl;
 
@@ -252,13 +250,17 @@ TEST(TonelliShanks, Tiny) {
 
 TEST(TonelliShanks, Test1) {
   bignum p = gen_prime(1 << 30);
-  REP (i, 10) { test_tonelli(p); }
+  REP (i, 10) {
+    test_tonelli(p);
+  }
 }
 
 TEST(TonelliShanks, TestLarge) {
   REP (prime_test, 10) {
     bignum p = gen_prime(bignum(2).lshift(500));
-    REP (i, 10) { test_tonelli(p); }
+    REP (i, 10) {
+      test_tonelli(p);
+    }
   }
 }
 
@@ -363,16 +365,14 @@ TEST(PolyFFT, Test2) {
   planner2.init(&gfp, wanted_order, false, false);
   OPA_DISP0(planner2.fft(a.to_vec()));
 
-  std::vector<u32> t_c2 =
-    planner.main_executor->multiply(a.to_vec(), b.to_vec());
+  std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
   FFT<u32> fft2;
   fft2.init(&gfp, wanted_order, gfp.getNthRoot(wanted_order));
   auto a1 = fft2.fft(a.to_vec());
   auto a2 = fft2.fft(b.to_vec());
   OPA_DISP0(a1, a2);
-  REP (i, a1.size())
-    a1[i] = gfp.mul(a1[i], a2[i]);
+  REP (i, a1.size()) a1[i] = gfp.mul(a1[i], a2[i]);
   OPA_DISP0(a1);
   OPA_DISP0(fft2.ifft(a1));
 
@@ -402,8 +402,7 @@ TEST(PolyFFT, TestMulMultiLarge) {
         PT a = pr.rand(pa);
         PT b = pr.rand(pb);
 
-        std::vector<u32> t_c2 =
-          planner.main_executor->multiply(a.to_vec(), b.to_vec());
+        std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
         if (0) {
           PT c1 = pr.mul(a, b);
@@ -436,8 +435,7 @@ TEST(PolyFFT, TestMulMulti) {
         PT a = pr.rand(pa);
         PT b = pr.rand(pb);
 
-        std::vector<u32> t_c2 =
-          planner.main_executor->multiply(a.to_vec(), b.to_vec());
+        std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
         PT c1 = pr.mul(a, b);
         PT c2 = pr.import(t_c2);
@@ -482,8 +480,7 @@ TEST(PolyFFT, TestMulSimple) {
   OPA_DISP0(planner.ifft(planner.fft(a.to_vec())));
   OPA_DISP0(simple_planner.ifft(simple_planner.fft(a.to_vec())));
   OPA_DISP0(planner.ifft(planner.fft(a.to_vec())));
-  std::vector<u32> t_c2 =
-    planner.main_executor->multiply(a.to_vec(), b.to_vec());
+  std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
   PT c1 = pr.mul(a, b);
   PT c2 = pr.import(t_c2);
@@ -504,8 +501,7 @@ TEST(PolyFFT, TestMulSplit) {
   planner.init(&gfp, wanted_order, !PolyFFTPlanner<u32>::kForceSimple,
                PolyFFTPlanner<u32>::kWantDft);
 
-  std::vector<u32> t_c2 =
-    planner.main_executor->multiply(a.to_vec(), b.to_vec());
+  std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
   PT c1 = pr.mul(a, b);
   PT c2 = pr.import(t_c2);
@@ -525,8 +521,7 @@ TEST(PolyFFT, TestMul) {
   PolyFFTPlanner<u32> planner;
   planner.init(&gfp, wanted_order, false, false);
 
-  std::vector<u32> t_c2 =
-    planner.main_executor->multiply(a.to_vec(), b.to_vec());
+  std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
   PT c1 = pr.mul(a, b);
   PT c2 = pr.import(t_c2);
@@ -545,16 +540,14 @@ TEST(PolyFFT, Test1) {
   int wanted_order = a.deg() + b.deg() + 1;
   wanted_order = 106;
   planner.init(&gfp, wanted_order);
-  std::vector<u32> t_c2 =
-    planner.main_executor->multiply(a.to_vec(), b.to_vec());
+  std::vector<u32> t_c2 = planner.main_executor->multiply(a.to_vec(), b.to_vec());
 
   FFT<u32> fft2;
   fft2.init(&gfp, wanted_order, gfp.getNthRoot(wanted_order));
   auto a1 = fft2.fft(a.to_vec());
   auto a2 = fft2.fft(b.to_vec());
   OPA_DISP0(a1, a2);
-  REP (i, a1.size())
-    a1[i] = gfp.mul(a1[i], a2[i]);
+  REP (i, a1.size()) a1[i] = gfp.mul(a1[i], a2[i]);
   OPA_DISP0(a1);
   OPA_DISP0(fft2.ifft(a1));
 
@@ -639,11 +632,9 @@ TEST(ZX, Factor1) {
 
       P_Z res_poly = PR_Z.getE() * unit;
       for (auto &factor_and_pw : found_factors) {
-        REP (i, factor_and_pw.second)
-          res_poly = res_poly * factor_and_pw.first;
+        REP (i, factor_and_pw.second) res_poly = res_poly * factor_and_pw.first;
       }
-      OPA_CHECK(res_poly == poly, res_poly, poly, found_factors,
-                factors_with_count);
+      OPA_CHECK(res_poly == poly, res_poly, poly, found_factors, factors_with_count);
 
       // Cannot check like this, some factors maybe not be irreducible
       // OPA_DISP0(found_factors, factors_with_count);
@@ -670,21 +661,17 @@ TEST(GcdPlan, QX1) {
 TEST(PolyBasic, SwitchVars) {
   PolyRing<P_Z> pr_zz(&PR_Z);
   typedef Poly<P_Z> P_ZZ;
-  P_ZZ pxy = pr_zz.import_vec(
-    { PR_Z.import_vec({ 1, 4, 5 }), PR_Z.import_vec({ 2, 8 }) });
-  P_ZZ pyx =
-    pr_zz.import_vec({ PR_Z.import_vec({ 1, 2 }), PR_Z.import_vec({ 4, 8 }),
-                       PR_Z.import_vec({ 5 }) });
+  P_ZZ pxy = pr_zz.import_vec({ PR_Z.import_vec({ 1, 4, 5 }), PR_Z.import_vec({ 2, 8 }) });
+  P_ZZ pyx = pr_zz.import_vec(
+    { PR_Z.import_vec({ 1, 2 }), PR_Z.import_vec({ 4, 8 }), PR_Z.import_vec({ 5 }) });
   OPA_CHECK_EQ0(pyx, poly_switch_vars(pxy));
 }
 
 TEST(PolyBasic, Resultant) {
-  P_QQ p1 =
-    Q_xy.import({ Q_x.getE(), Q_x.getZ(), Q_x.constant(QF(-2)) }, kPolyRev);
-  P_QQ p2 =
-    Q_xy.import({ Q_x.constant(QF(-1, 2)), Q_x.x() - Q_x.constant(QF(5)),
-                  Q_x.xpw(2) * QF(-1, 2) + Q_x.x() * QF(5) - QF(0x17, 2) },
-                kPolyRev);
+  P_QQ p1 = Q_xy.import({ Q_x.getE(), Q_x.getZ(), Q_x.constant(QF(-2)) }, kPolyRev);
+  P_QQ p2 = Q_xy.import({ Q_x.constant(QF(-1, 2)), Q_x.x() - Q_x.constant(QF(5)),
+                          Q_x.xpw(2) * QF(-1, 2) + Q_x.x() * QF(5) - QF(0x17, 2) },
+                        kPolyRev);
   OPA_DISP0(resultant2(p1, p2));
   //  (1*A^0) () (-2*A^0) ()
   //    () (1*A^0) () (-2*A^0)
@@ -719,8 +706,7 @@ TEST(PolyBasic, ResultantQQ) {
     OPA_DISP0(nstep, p1, p2);
     P_Q r1 = resultant2(p1, p2);
     P_Q r2 = resultant_slow(p1, p2);
-    REP (i, r1.size())
-      OPA_CHECK_EQ(r1[i], r2[i], i);
+    REP (i, r1.size()) OPA_CHECK_EQ(r1[i], r2[i], i);
     OPA_CHECK_EQ(r1, r2, p1, p2);
   }
 }
@@ -784,9 +770,8 @@ TEST(NumberField, Test1) {
   auto cp_q = nf.get_char_poly(e);
   OPA_DISP0(cp_q);
 
-  P_K pk = nf.K_x.import(
-    { nf.import({ QF(1) }), nf.import({ QF(-10) }), nf.import({ QF(23) }) },
-    kPolyRev);
+  P_K pk = nf.K_x.import({ nf.import({ QF(1) }), nf.import({ QF(-10) }), nf.import({ QF(23) }) },
+                         kPolyRev);
 
   K pk_sol_root1 = nf.import({ QF(5), QF(1) }); // 5 + sqrt(2)
   OPA_CHECK_EQ(pk(pk_sol_root1), Q_x.getZ(), pk_sol_root1, pk);
@@ -1089,8 +1074,7 @@ TEST(BasicMat, SNF) {
   std::vector<std::vector<bignum> > ranges;
   REP (i, n) {
     if (i < m) {
-      ranges.push_back(
-        utils::Range<bignum>::StepRange(0, d.get(i, i).abs(), 1).tb());
+      ranges.push_back(utils::Range<bignum>::StepRange(0, d.get(i, i).abs(), 1).tb());
     } else
       ranges.push_back({ 0 });
   }
@@ -1106,8 +1090,7 @@ TEST(BasicMat, SNF) {
     auto tmp = iq.eval(v);
     std::vector<bignum> tmp_reduced = tmp;
     reduce_hnf_vec(lat_hnf, tmp_reduced, nullptr, true);
-    OPA_DISP0(v, tmp, tmp_reduced, Ring_Z.dot(v1, tmp_reduced),
-              Ring_Z.dot(v2, tmp_reduced));
+    OPA_DISP0(v, tmp, tmp_reduced, Ring_Z.dot(v1, tmp_reduced), Ring_Z.dot(v2, tmp_reduced));
   });
 }
 
@@ -1127,16 +1110,160 @@ TEST(T1, RSCode) {
 
   std::vector<u32> data;
   srand(0);
-  REP (i, k * 8)
-    data.push_back(rand() % 2);
+  REP (i, k * 8) data.push_back(rand() % 2);
   rscode.init(&gf256, n, k);
   std::vector<Poly_u32> c = rscode.encode(pack_vector_gfq(&gf256, data));
   c[0] = c[0] + gf256.getE();
   c[5] = c[5] + gf256.getE();
-  c[n-1] = c[n-1] + gf256.getE();
+  c[n - 1] = c[n - 1] + gf256.getE();
   std::vector<Poly_u32> res_enc = rscode.decode(c);
-  std::vector<u32> res =  unpack_vector_gfq(&gf256, res_enc);
+  std::vector<u32> res = unpack_vector_gfq(&gf256, res_enc);
   OPA_CHECK0(data == res);
+}
+
+TEST(T1, MontgomeryMul) {
+  typedef GF_p CurField;
+  CurField gfp(1e9 + 7);
+  REP (step, 100) {
+    u32 a = gfp.getRand();
+    u32 b = gfp.getRand();
+    MGContext mgc(gfp.n);
+    u32 c = mgc.mul(a, b);
+    u32 ans = (u64)a * b % gfp.n;
+    OPA_DISP0(c, ans);
+    OPA_CHECK_EQ0(c, ans);
+  }
+}
+
+TEST(T1, CRT) {
+  typedef GF_p CurField;
+  GF_p gfp(1e9 + 7);
+  auto crtgfp = CRTField<u32, 2>({ &f1, &f2 }, gfp);
+  // std::vector<u32> tb = { gfp.n / 2, gfp.n / 3, u32(gfp.n / 1.1) };
+  std::vector<u32> tb = { 10, 20 };
+  auto v = (s128)tb[0] * tb[1];
+  auto x = crtgfp.import_vec(tb);
+  OPA_DISP0(x);
+  auto a = crtgfp.lower(crtgfp.mulv(x));
+  OPA_DISP0(a, v % gfp.n);
+}
+
+TEST(T1, LinearRec) {
+  typedef GF_pMod<998244353> GFPu32;
+  typedef GFPu32 CurField;
+  GFPu32 gfp({ { 2, 23 }, { 7, 1 }, { 17, 1 } });
+  opa::math::common::FFT2Dispatcher<u32> fftd{
+    20, [&](int npw) { return (IFFTProvider<u32> *)new FFT2F<u32, GFPu32>(&gfp, npw); }
+  };
+  opa::math::common::PolyRing<u32, CurField> pr(&gfp);
+  opa::math::common::FastPoly<u32, CurField> fp{ pr, fftd };
+  std::vector<u32> fx = { 1, 2, 5 };
+  auto f = pr.import_vec(fx);
+  auto g = pr.import_vec({ gfp.neg(1), 7, 3, 1 });
+  int n = g.deg();
+  int tg = 20;
+
+  auto h = fp.mulxmod(f, g, n);
+  auto fext = fp.mulxmod(h, fp.invxmod(g, tg + 10), tg + 10);
+
+  auto res = fp.linear_rec_kth(fx, g, tg, 5);
+  OPA_DISP0(res);
+  OPA_DISP0(fext);
+}
+
+TEST(T2, LinearRec) {
+  typedef GF_pMod<998244353> GFPu32;
+  typedef GFPu32 CurField;
+  GFPu32 gfp({ { 2, 23 }, { 7, 1 }, { 17, 1 } });
+  opa::math::common::FFT2Dispatcher<u32> fftd{
+    20, [&](int npw) { return (IFFTProvider<u32> *)new FFT2F<u32, GFPu32>(&gfp, npw); }
+  };
+  opa::math::common::PolyRing<u32, CurField> pr(&gfp);
+  opa::math::common::FastPoly<u32, CurField> fp{ pr, fftd };
+  auto f = pr.import_vec({ 1, 7, 3, 1 });
+  int n = f.deg() + 1;
+  auto fx = STD_RANGE(0, n) | STD_TSFX(pr.eval(f, x)) | STD_VEC;
+  int s = 20;
+  int m = 10;
+  auto res = fp.linear_rec_kth_poly(fx, s, m);
+  auto ans = STD_RANGE(s, s + 3 * m) | STD_TSFX(pr.eval(f, x)) | STD_VEC;
+  OPA_DISP0(res);
+  OPA_DISP0(ans);
+}
+
+TEST(T1, PRecursive) {
+  typedef CRTField<u32, 3> GFP;
+  typedef GF_pMod<998244353> GFPu32;
+
+  int npw_max = 18;
+  struct Problem {
+    u32 n, m;
+  };
+  Problem prob = { .n = 20, .m = 1 };
+#if 0
+    typedef GF_p CurField;
+    GF_p gfp(prob.m);
+    GFP crtgfp = crtf1(gfp);
+
+    auto px = CRTFieldFFTProvider(crtgfp, npw_max);
+    opa::math::common::PolyRing<u32, CurField> pr(&gfp);
+
+    opa::math::common::FastPoly<u32, CurField> fp{ pr, px };
+#else
+  typedef GFPu32 CurField;
+  GFPu32 gfp({ { 2, 23 }, { 7, 1 }, { 17, 1 } });
+  opa::math::common::FFT2Dispatcher<u32> fftd{
+    20, [&](int npw) { return (IFFTProvider<u32> *)new FFT2F<u32, GFPu32>(&gfp, npw); }
+  };
+  opa::math::common::PolyRing<u32, CurField> pr(&gfp);
+  opa::math::common::FastPoly<u32, CurField> fp{ pr, fftd };
+#endif
+
+#if 1
+
+  auto s0 = VV_t(u32){
+    { 52, 90, 17 },
+    { 180, gfp.neg(324), gfp.neg(72) },
+  };
+  PRecursirveSeq seq{
+    .p0 = pr.import({ 8, 6, 1 }),
+    .pconst = pr.getZ(),
+    .coeffs = s0 | STD_TSFX(pr.import_vec(x)) | STD_VEC,
+    .c0 = { 1, 4 },
+  };
+
+#else
+  PRecursirveSeq seq{
+    .p0 = pr.import({ 1 }),
+    .pconst = pr.getZ(),
+    .coeffs = { pr.import_vec({ 1 }), pr.import_vec({ gfp.neg(2), 4 }) },
+    .c0 = { 1, 1 },
+  };
+#endif
+  PRecursirveSeqComp comp{ .fp = &fp, .f = &gfp, .seq = seq };
+
+  if (0) {
+    auto tb = seq.c0;
+    int req = prob.n;
+    comp.setup(req + seq.n());
+    tb = comp.run_update(tb, 1, req);
+    auto tx = STD_RANGE(1, req + seq.n()) | STD_TSFX(comp.compute(x)) | STD_VEC;
+    OPA_DISP0(tb);
+    OPA_DISP0(tx);
+    OPA_DISP0(tb == tx);
+  }
+
+  if (0) {
+    auto tb = seq.c0;
+    tb = comp.run_update(tb, 1, prob.n + 10);
+    FOR (j, std::max<int>(0, prob.n - 20), tb.size()) OPA_DISP0(j, tb[j]);
+
+    comp.setup(prob.n + 2);
+    OPA_DISP0(prob.n, comp.compute(prob.n));
+  }
+
+  comp.setup(prob.n + 2);
+  OPA_DISP0(comp.compute(prob.n));
 }
 
 GTEST_API_ int main(int argc, char **argv) {

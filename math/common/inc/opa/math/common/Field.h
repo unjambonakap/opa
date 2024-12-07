@@ -45,7 +45,10 @@ public:
   // EOI
 
   virtual bool isInv(const T &a) const { return !isZ(a); }
-  virtual bool ediv(const T &a, const T &b, T *q, T *r) const {
+  virtual T div(const T &a, const T &b) const override { return mul(a, inv(b)); }
+  virtual T mod(const T &a, const T &b) const override { return getZ(); }
+
+  virtual bool ediv(const T &a, const T &b, T *q, T *r) const override {
     if (isZ(b)) return false;
     if (q) *q = mul(a, inv(b));
     if (r) *r = getZ();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <opa/utils/hash.h>
 #include <opa/math/common/FractionField.h>
 #include <opa/math/common/base.h>
 #include <opa/stolen/StringRef.h>
@@ -87,9 +88,7 @@ public:
   void from_bg(const bignum &a);
 
   static Float From_bg(const bignum &a);
-  static Float Float_10pw(int pw) {
-    return Float(10).pow(pw);
-  }
+  static Float Float_10pw(int pw) { return Float(10).pow(pw); }
 
   void reset();
   Float sqrt() const;
@@ -145,8 +144,7 @@ public:
   template <class T> static T get_rand_uni(const T &a, const T &b);
 
   template <class T>
-  static bool eq(const std::complex<T> &a, const std::complex<T> &b,
-                 const T &eps) {
+  static bool eq(const std::complex<T> &a, const std::complex<T> &b, const T &eps) {
     return std::abs(a - b) < eps;
   }
   template <class T> static bool eq(const T &a, const T &b, const T &eps) {
@@ -169,45 +167,34 @@ public:
     return std::complex<T>(std::cos(tmp), std::sin(tmp));
   }
 
-  template <class T> static bool isz(const T &v, const T &cmp) {
-    return abs(v) <= cmp;
-  }
+  template <class T> static bool isz(const T &v, const T &cmp) { return abs(v) <= cmp; }
 
   template <class From, class To> static To cast(const From &from);
 };
 
-template <>
-inline Float FloatUtil::get_gaussian<Float>(const Float &a, const Float &b) {
+template <> inline Float FloatUtil::get_gaussian<Float>(const Float &a, const Float &b) {
   return FloatRng::get()->get_gaussian(a, b);
 }
-template <>
-inline Float FloatUtil::get_rand_uni<Float>(const Float &a, const Float &b) {
+template <> inline Float FloatUtil::get_rand_uni<Float>(const Float &a, const Float &b) {
   return FloatRng::get()->get_gaussian(a, b);
 }
 
-template <> inline const Float &FloatUtil::get_pi<Float>() {
-  return Float::g_pi();
-}
-template <> inline const Float &FloatUtil::get_e<Float>() {
-  return Float::g_e();
-}
+template <> inline const Float &FloatUtil::get_pi<Float>() { return Float::g_pi(); }
+template <> inline const Float &FloatUtil::get_e<Float>() { return Float::g_e(); }
 
 template <> Float FloatUtil::erfc<Float>(const Float &a);
 template <> Float FloatUtil::erf<Float>(const Float &a);
 
 template <>
-inline bool
-FloatUtil::isz<std::complex<double> >(const std::complex<double> &a,
-                                      const std::complex<double> &b) {
-  return std::abs(std::real(a)) < std::real(b) &&
-         std::abs(std::imag(a)) < std::imag(b);
+inline bool FloatUtil::isz<std::complex<double> >(const std::complex<double> &a,
+                                                  const std::complex<double> &b) {
+  return std::abs(std::real(a)) < std::real(b) && std::abs(std::imag(a)) < std::imag(b);
 }
 
 template <>
 inline bool FloatUtil::isz<std::complex<Float> >(const std::complex<Float> &a,
                                                  const std::complex<Float> &b) {
-  return std::abs(std::real(a)) < std::real(b) &&
-         std::abs(std::imag(a)) < std::imag(b);
+  return std::abs(std::real(a)) < std::real(b) && std::abs(std::imag(a)) < std::imag(b);
 }
 
 template <> u32 FloatUtil::cast<Float, u32>(const Float &from);
@@ -218,16 +205,12 @@ template <> bignum FloatUtil::cast<double, bignum>(const double &from);
 namespace {
 double pi = acos(-1.);
 double e = exp(1);
-}
+} // namespace
 
-template <>
-inline double FloatUtil::get_gaussian<double>(const double &a,
-                                              const double &b) {
+template <> inline double FloatUtil::get_gaussian<double>(const double &a, const double &b) {
   return FloatRng::get()->get_gaussian(a, b).to_double();
 }
-template <>
-inline double FloatUtil::get_rand_uni<double>(const double &a,
-                                              const double &b) {
+template <> inline double FloatUtil::get_rand_uni<double>(const double &a, const double &b) {
   return FloatRng::get()->get_uni(a, b).to_double();
 }
 
@@ -258,37 +241,41 @@ template <class T> struct FloatEQCompare {
   bool operator()(const std::complex<T> &a, const std::complex<T> &b) const {
     return FloatUtil::eq(a, b, eps);
   }
-  bool operator()(const T &a, const T &b) const {
-    return FloatUtil::eq(a, b, eps);
-  }
+  bool operator()(const T &a, const T &b) const { return FloatUtil::eq(a, b, eps); }
 };
 
 OPA_NM_MATH_COMMON_END
 
 namespace opa {
 namespace utils {
-template <> inline double Conv2::conv(const opa::math::common::Float &x) {
-  return x.to_double();
-}
-}
-}
+template <> inline double Conv2::conv(const opa::math::common::Float &x) { return x.to_double(); }
+} // namespace utils
+} // namespace opa
 
 namespace std {
-template <class T>
-bool operator<(const std::complex<T> &a, const std::complex<T> &b) {
+template <class T> bool operator<(const std::complex<T> &a, const std::complex<T> &b) {
   if (a.real() != b.real()) return a.real() < b.real();
   return a.imag() < b.imag();
 }
-}
+} // namespace std
 
 namespace std {
 
-template <> struct hash<opa::math::common::Float > {
+template <> struct hash<opa::math::common::Float> {
   typedef opa::math::common::Float argument_type;
   typedef std::size_t result_type;
 
   result_type operator()(argument_type const &s) const {
     return std::hash<std::string>{}(s.to_data());
+  }
+};
+template <> struct hash<std::complex<opa::math::common::Float> > {
+  typedef std::complex<opa::math::common::Float> argument_type;
+  typedef std::size_t result_type;
+
+  result_type operator()(argument_type const &s) const {
+    return std::hash<std::pair<opa::math::common::Float, opa::math::common::Float> >()(
+      MP(s.real(), s.imag()));
   }
 };
 } // namespace std

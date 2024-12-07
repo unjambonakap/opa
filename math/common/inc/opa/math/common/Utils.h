@@ -34,13 +34,23 @@ bool testPrime(const bignum &n);
 void initMathCommon(int seed = -1);
 bool isPrimeDB(u32 a);
 u32 nextPrimeSmall(u32 a);
-u64 u32_faste(u32 a, u32 p, u32 mod);
-u32 u32_faste(u32 a, u32 p);
+inline static u64 u32_faste(u32 a, u32 p, u32 mod) {
+  u64 x = 1;
+  for (; p; p >>= 1, a = (u64)a * a % mod)
+    if (p & 1) x = (u64)x * a % mod;
+  return x;
+}
+
+inline static u32 u32_faste(u32 a, u32 p) {
+  u32 x = 1;
+  for (; p; p >>= 1, a = a * a)
+    if (p & 1) x = x * a;
+  return x;
+}
 bignum next_prime(const bignum &n);
 
 // <remained, prime power>
-bignum crt_coprime(const std::vector<std::pair<bignum, bignum> > &lst,
-                   const bignum &mod = -1);
+bignum crt_coprime(const std::vector<std::pair<bignum, bignum> > &lst, const bignum &mod = -1);
 
 class CRT {
 public:
@@ -71,7 +81,9 @@ public:
   bignum solve(const std::vector<bignum> &vec) const {
     bignum res = 0;
     OPA_CHECK0(vec.size() == coeffs.size());
-    REP (i, vec.size()) { res += vec[i] * coeffs[i]; }
+    REP (i, vec.size()) {
+      res += vec[i] * coeffs[i];
+    }
     return res % n;
   }
 
@@ -112,18 +124,65 @@ inline S64Factors factor_small(u32 a) {
   return res;
 }
 
-u32 u32_gcd(u32 a, u32 b);
-u32 u32_egcd(u32 a, u32 b, int &u, int &v);
-u32 _u32_egcd(u32 a, u32 b, int ua, int va, int ub, int vb, int &u, int &v);
-u32 u32_lcm(u32 a, u32 b);
+inline u32 u32_gcd(u32 a, u32 b) {
+  if (a < b) std::swap(a, b);
+  return b ? u32_gcd(b, a % b) : a;
+}
+
+inline u32 _u32_egcd(u32 a, u32 b, s32 ua, s32 va, s32 ub, s32 vb, s32 &u, s32 &v) {
+  if (b == 0) {
+    u = ua;
+    v = va;
+    return a;
+  }
+  u32 m = a / b;
+  return _u32_egcd(b, a - m * b, ub, vb, ua - m * ub, va - m * vb, u, v);
+}
+
+inline u32 u32_egcd(u32 a, u32 b, s32 &u, s32 &v) {
+  if (a < b) return u32_egcd(b, a, v, u);
+  return _u32_egcd(a, b, 1, 0, 0, 1, u, v);
+}
+
+inline u32 u32inv_egcd(u32 a, u32 p) {
+  s32 u, v;
+  u32_egcd(a, p, u, v);
+  if (u < 0) u += p;
+  if (u >= p) u -= p;
+  return u;
+}
+
+constexpr inline u64 _u64_egcd(u64 a, u64 b, s64 ua, s64 va, s64 ub, s64 vb, s64 &u, s64 &v) {
+  if (b == 0) {
+    u = ua;
+    v = va;
+    return a;
+  }
+  u64 m = a / b;
+  return _u64_egcd(b, a - b * m, ub, vb, ua - m * ub, va - m * vb, u, v);
+}
+
+constexpr inline u64 u64_egcd(u64 a, u64 b, s64 &u, s64 &v) {
+  if (a < b) return u64_egcd(b, a, v, u);
+  return _u64_egcd(a, b, 1, 0, 0, 1, u, v);
+}
+
+constexpr inline u64 u64inv_egcd(u64 a, u64 p) {
+  s64 u, v;
+  u64_egcd(a, p, u, v);
+  if (u < 0) u += p;
+  if (u >= p) u -= p;
+  return u;
+}
+
+inline u32 u32_lcm(u32 a, u32 b) { return a / u32_gcd(a, b) * b; }
 
 std::vector<u32> genRand(u32 n, u32 sz);
 
-
 constexpr int BITCOUNT_BLK = 16;
-extern int bitcount_tb[1<<BITCOUNT_BLK];
-inline int count_bit(u16 a){return bitcount_tb[a];}
-inline int count_bit(u32 a){return count_bit(u16(a)) + count_bit(u16(a>>16));}
-inline int count_bit(u64 a){return count_bit(u32(a)) + count_bit(u32(a>>32));}
+extern int bitcount_tb[1 << BITCOUNT_BLK];
+inline int count_bit(u16 a) { return bitcount_tb[a]; }
+inline int count_bit(u32 a) { return count_bit(u16(a)) + count_bit(u16(a >> 16)); }
+inline int count_bit(u64 a) { return count_bit(u32(a)) + count_bit(u32(a >> 32)); }
 
 OPA_NM_MATH_COMMON_END

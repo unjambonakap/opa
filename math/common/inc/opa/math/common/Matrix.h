@@ -18,20 +18,21 @@ OPA_NM_MATH_COMMON
 enum class VecType : int { Row, Col };
 enum class LowerType : int { Lower, Upper };
 
-template <class T> class Matrix {
+template <class T, class BaseRing = Ring<T> > class Matrix {
 
 public:
+  typedef Matrix<T, BaseRing> This;
   struct SolverResult {
-    Matrix<T> KernelBasis;
-    Matrix<T> Inv;
-    Matrix<T> ImageBasis;
+    This KernelBasis;
+    This Inv;
+    This ImageBasis;
   };
 
   Matrix() {
     ring = 0;
     n = m = 0;
   }
-  void initialize(const Ring<T> *ring, int n, int m);
+  void initialize(const BaseRing *ring, int n, int m);
   void finalize();
   ~Matrix();
   const T &get(int a) const {
@@ -46,25 +47,25 @@ public:
       REP (j, m) get(i, j) = ring->getZ();
   }
 
-  Matrix<T> clone() const {
-    Matrix<T> res;
+  This clone() const {
+    This res;
     res.copy(*this);
     return res;
   }
 
-  Matrix(Matrix<T> &&a) { affect(a); }
-  Matrix &operator=(Matrix<T> &&a) {
+  Matrix(This &&a) { affect(a); }
+  Matrix &operator=(This &&a) {
     affect(a);
     return *this;
   }
-  Matrix(const Matrix<T> &a) { copy(a); }
+  Matrix(const This &a) { copy(a); }
 
-  void copy(const Matrix<T> &a);
-  void prepare_set(const Matrix<T> &a, int r0, int c0, int nr, int nc);
-  void set_from(const Matrix<T> &a, int r0 = 0, int c0 = 0, int nr = -1, int nc = -1);
-  void set_mutable_from(Matrix<T> &a, int r0 = 0, int c0 = 0, int nr = -1, int nc = -1);
-  void set_mutable_from(Matrix<T> &&a, int r0 = 0, int c0 = 0, int nr = -1, int nc = -1);
-  void set_from(const Matrix<T> &a, const vi &rows, const vi &cols) {
+  void copy(const This &a);
+  void prepare_set(const This &a, int r0, int c0, int nr, int nc);
+  void set_from(const This &a, int r0 = 0, int c0 = 0, int nr = -1, int nc = -1);
+  void set_mutable_from(This &a, int r0 = 0, int c0 = 0, int nr = -1, int nc = -1);
+  void set_mutable_from(This &&a, int r0 = 0, int c0 = 0, int nr = -1, int nc = -1);
+  void set_from(const This &a, const vi &rows, const vi &cols) {
     this->finalize();
     this->initialize(a.ring, rows.size(), cols.size());
     REP (i, n)
@@ -85,27 +86,27 @@ public:
     return res;
   }
 
-  Matrix<T> get_submatrix(const vi &rows, const vi &cols) const {
-    Matrix<T> res;
+  This get_submatrix(const vi &rows, const vi &cols) const {
+    This res;
     res.set_from(*this, rows, cols);
     return res;
   }
-  Matrix<T> lower_tri() const {
+  This lower_tri() const {
     auto res = this->clone();
     OPA_CHECK0(is_square());
     REP (i, n)
       REP (j, i) res(j, i) = ring->getZ();
     return res;
   }
-  Matrix<T> upper_tri() const { return lower_tri().transpose(); }
+  This upper_tri() const { return lower_tri().transpose(); }
 
-  Matrix<T> get_submatrix(int r0, int c0, int nr = -1, int nc = -1) const;
-  Matrix<T> get_mutable(int r0, int c0, int nr = -1, int nc = -1);
-  Matrix<T> get_mutable_col(int c);
-  Matrix<T> get_mutable_row(int r);
-  Matrix(const Ring<T> *ring, int n, int m);
-  Matrix<T> cmul(const T &a) const {
-    Matrix<T> res = this->clone();
+  This get_submatrix(int r0, int c0, int nr = -1, int nc = -1) const;
+  This get_mutable(int r0, int c0, int nr = -1, int nc = -1);
+  This get_mutable_col(int c);
+  This get_mutable_row(int r);
+  Matrix(const BaseRing *ring, int n, int m);
+  This cmul(const T &a) const {
+    This res = this->clone();
     res.scmul(a);
     return res;
   }
@@ -146,8 +147,8 @@ public:
     }
   }
 
-  Matrix<T> faste(bignum p) const {
-    Matrix<T> x, a;
+  This faste(bignum p) const {
+    This x, a;
     x.affect(identity());
     a.affect(this->clone());
     for (; p != 0; p.srshift(1), a.affect(a * a))
@@ -155,55 +156,55 @@ public:
     return x;
   }
 
-  void set_submatrix(const Matrix<T> &a, int r0 = 0, int c0 = 0);
+  void set_submatrix(const This &a, int r0 = 0, int c0 = 0);
 
   template <class Container> void addv(const Container &a) {
     OPA_CHECK0(this->is_vec());
     REP (i, size()) get(i) = ring->add(get(i), a[i]);
   }
 
-  Matrix<T> cadd(const T &a) const {
-    Matrix<T> res = this->clone();
+  This cadd(const T &a) const {
+    This res = this->clone();
     res.scadd(a);
     return res;
   }
-  Matrix<T> &scmul(const T &a) {
+  This &scmul(const T &a) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->mul(get(i, j), a);
     return *this;
   }
 
-  Matrix<T> &scadd(const T &a) {
+  This &scadd(const T &a) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->add(get(i, j), a);
     return *this;
   }
 
-  Matrix<T> &scdiv(const T &a) {
+  This &scdiv(const T &a) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->div(get(i, j), a);
     return *this;
   }
 
-  Matrix<T> &ssub(const Matrix<T> &b) {
+  This &ssub(const This &b) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->sub(get(i, j), b(i, j));
     return *this;
   }
 
-  Matrix<T> &sadd(const Matrix<T> &b) {
+  This &sadd(const This &b) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->add(get(i, j), b(i, j));
     return *this;
   }
 
-  Matrix<T> &sdiv(const Matrix<T> &b) {
+  This &sdiv(const This &b) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->div(get(i, j), b(i, j));
     return *this;
   }
 
-  Matrix<T> &scmul(const Matrix<T> &b) {
+  This &scmul(const This &b) {
     REP (i, n)
       REP (j, m) get(i, j) = ring->mul(get(i, j), b(i, j));
     return *this;
@@ -234,7 +235,7 @@ public:
 
   void set(int a, int b, const T &v) { get(a, b) = v; }
 
-  T dot(const Matrix<T> &a) const {
+  T dot(const This &a) const {
     T res = ring->getZ();
     REP (i, n)
       REP (j, m) res = ring->add(res, ring->mul(get(i, j), a(i, j)));
@@ -252,36 +253,35 @@ public:
   int getN() const;
   int getM() const;
 
-  static Matrix<T> identity(const Ring<T> *ring, int n);
-  Matrix<T> identity(int n = -1) const;
-  Matrix<T> zeroes(int nr = -1, int nc = -1) const { return constant(ring->getZ(), nr, nc); }
-  Matrix<T> ones(int nr = -1, int nc = -1) const { return constant(ring->getE(), nr, nc); }
-  Matrix<T> constant(const T &cv, int nr = -1, int nc = -1) const;
-  static Matrix<T> rand(const Ring<T> *ring, int n, int m);
+  static This identity(const BaseRing *ring, int n);
+  This identity(int n = -1) const;
+  This zeroes(int nr = -1, int nc = -1) const { return constant(ring->getZ(), nr, nc); }
+  This ones(int nr = -1, int nc = -1) const { return constant(ring->getE(), nr, nc); }
+  This constant(const T &cv, int nr = -1, int nc = -1) const;
+  static This rand(const BaseRing *ring, int n, int m);
 
-  template <typename Func>
-  static Matrix<T> rand(const Ring<T> *ring, int n, int m, const Func &func) {
-    Matrix<T> res(ring, n, m);
+  template <typename Func> static This rand(const BaseRing *ring, int n, int m, const Func &func) {
+    This res(ring, n, m);
 
     REP (i, n)
       REP (j, m) res(i, j) = func();
     return res;
   }
 
-  Matrix<T> &self_elem_addmul(const Matrix<T> &a, const T &c);
-  Matrix<T> &self_elem_mul(const Matrix<T> &a);
-  Matrix<T> mul(const Matrix<T> &a) const;
+  This &self_elem_addmul(const This &a, const T &c);
+  This &self_elem_mul(const This &a);
+  This mul(const This &a) const;
 
-  Matrix<T> &self_mul(const Matrix<T> &a) {
-    Matrix<T> res = *this * a;
+  This &self_mul(const This &a) {
+    This res = *this * a;
     copy_coeffs(res);
     return *this;
   }
 
-  Matrix<T> add(const Matrix<T> &a) const;
-  Matrix<T> sub(const Matrix<T> &a) const;
+  This add(const This &a) const;
+  This sub(const This &a) const;
 
-  void copy_coeffs(const Matrix<T> &a) {
+  void copy_coeffs(const This &a) {
     OPA_CHECK_EQ0(a.n, n);
     OPA_CHECK_EQ0(a.m, m);
     REP (i, n)
@@ -304,11 +304,11 @@ public:
   void setRow(int rowId, const std::vector<T> &tb, int start = 0);
 
   // DEPRECATED
-  Matrix<T> getCol(int c) const { return get_col(c); }
-  Matrix<T> getRow(int r) const { return get_row(r); }
+  This getCol(int c) const { return get_col(c); }
+  This getRow(int r) const { return get_row(r); }
 
-  Matrix<T> get_col(int c) const;
-  Matrix<T> get_row(int r) const;
+  This get_col(int c) const;
+  This get_row(int r) const;
 
   T l_inf() const {
     T res = ring->getZ();
@@ -326,12 +326,12 @@ public:
     REP (i, m) get(r, i) = container[i];
   }
 
-  Matrix<T> transpose() const;
+  This transpose() const;
 
-  Matrix<T> operator*(const Matrix<T> &b) const { return mul(b); }
-  Matrix<T> operator+(const Matrix<T> &b) const { return add(b); }
-  Matrix<T> operator-(const Matrix<T> &b) const { return sub(b); }
-  bool operator==(const Matrix<T> &b) const {
+  This operator*(const This &b) const { return mul(b); }
+  This operator+(const This &b) const { return add(b); }
+  This operator-(const This &b) const { return sub(b); }
+  bool operator==(const This &b) const {
     if (n != b.n || m != b.m) return false;
     REP (i, n)
       REP (j, m)
@@ -339,14 +339,14 @@ public:
     return true;
   }
 
-  Matrix<T> kernel_basis() const {
-    Matrix<T> a(ring, n, m + n);
+  This kernel_basis() const {
+    This a(ring, n, m + n);
     REP (i, n)
       REP (j, m) a(i, j) = get(i, j);
     REP (i, n) a(i, m + i) = ring->getE();
     int d = a.row_echelon(n, m);
-    if (d == n) return Matrix<T>();
-    Matrix<T> res = a.get_submatrix(d, m).clone();
+    if (d == n) return This();
+    This res = a.get_submatrix(d, m).clone();
 
     return res;
   }
@@ -393,7 +393,7 @@ public:
   }
 
   SolverResult solve_eq() const {
-    Matrix<T> a(ring, n, m + n);
+    This a(ring, n, m + n);
     REP (i, n)
       REP (j, m) a(i, j) = get(i, j);
     REP (i, n) a(i, m + i) = ring->getE();
@@ -418,12 +418,12 @@ public:
     return res;
   }
 
-  Matrix<T> null_basis() const {
-    Matrix<T> a = this->clone();
+  This null_basis() const {
+    This a = this->clone();
     int d = a.row_echelon();
     int null_dim = m - d;
 
-    Matrix<T> res(ring, null_dim, m);
+    This res(ring, null_dim, m);
     std::vector<int> pos;
     int count = 0;
     int c = 0;
@@ -443,23 +443,22 @@ public:
     return res;
   }
 
-  bool reduce(Matrix<T> &other, int last_col = -1, bool early_exit = true,
-              Matrix<T> *output = nullptr) const;
+  bool reduce(This &other, int last_col = -1, bool early_exit = true, This *output = nullptr) const;
 
-  bool left_inverse(Matrix<T> *res) const {
-    Matrix<T> cur;
+  bool left_inverse(This *res) const {
+    This cur;
     if (!(this->transpose() * *this).invert(&cur)) return false;
     *res = cur * this->transpose();
     return true;
   }
 
-  Matrix<T> inverse() const {
-    Matrix<T> res;
+  This inverse() const {
+    This res;
     OPA_CHECK0(this->invert(&res));
     return res;
   }
 
-  bool invert(Matrix<T> *res, T *det = nullptr) const;
+  bool invert(This *res, T *det = nullptr) const;
   bool is_null() const {
     REP (i, n)
       REP (j, m)
@@ -502,27 +501,27 @@ public:
   int row_echelon(int n2 = -1, int m2 = -1);
   int row_echelon_gcd(T *gcd_mul = nullptr, int n2 = -1, int m2 = -1);
 
-  const Ring<T> *get_ring() const { return ring; }
+  const BaseRing *get_ring() const { return ring; }
 
   T trace() const;
 
   std::string str(int nrows = -1, bool header = true) const;
   void disp() const;
 
-  Matrix<T> fromvec(const std::vector<T> &vec, VecType type = VecType::Col) {
-    return Matrix<T>::fromvec(ring, vec, type);
+  This fromvec(const std::vector<T> &vec, VecType type = VecType::Col) {
+    return This::fromvec(ring, vec, type);
   }
 
-  Matrix<T> from(const Ring<T> *ring, const std::vector<std::vector<T> > &vec) {
-    Matrix<T> res;
+  This from(const BaseRing *ring, const std::vector<std::vector<T> > &vec) {
+    This res;
     res.initialize(ring, vec.size(), vec.size() > 0 ? vec[0].size() : 0);
     REP (i, res.n)
       REP (j, res.m) res(i, j) = vec[i][j];
     return res;
   }
 
-  static Matrix<T> fromzerovec(const Ring<T> *ring, int n, VecType type = VecType::Col) {
-    Matrix<T> res;
+  static This fromzerovec(const BaseRing *ring, int n, VecType type = VecType::Col) {
+    This res;
     if (type == VecType::Row)
       res.initialize(ring, 1, n);
     else
@@ -531,16 +530,16 @@ public:
     return res;
   }
 
-  static Matrix<T> fromvec(const Ring<T> *ring, const std::vector<T> &vec,
-                           VecType type = VecType::Col) {
-    Matrix<T> res = Matrix<T>::fromzerovec(ring, vec.size(), type);
+  static This fromvec(const BaseRing *ring, const std::vector<T> &vec,
+                      VecType type = VecType::Col) {
+    This res = This::fromzerovec(ring, vec.size(), type);
     REP (i, vec.size()) res(i) = vec[i];
     return res;
   }
 
-  static Matrix<T> fromvecs(const Ring<T> *ring, const std::vector<std::vector<T> > &vecs,
-                            VecType type = VecType::Col) {
-    Matrix<T> res;
+  static This fromvecs(const BaseRing *ring, const std::vector<std::vector<T> > &vecs,
+                       VecType type = VecType::Col) {
+    This res;
     if (type == VecType::Col) {
 
       res.initialize(ring, vecs[0].size(), vecs.size());
@@ -562,19 +561,19 @@ public:
     REP (i, std::max(n, m)) res.pb(get(i));
     return res;
   }
-  OPA_DECL_COUT_OPERATOR(Matrix<T>);
+  OPA_DECL_COUT_OPERATOR(This);
 
-  Matrix<T> &affect(Matrix<T> &a) {
+  This &affect(This &a) {
     set_mutable_from(a);
     return *this;
   }
 
-  Matrix<T> &affect(Matrix<T> &&a) {
+  This &affect(This &&a) {
     set_mutable_from(a);
     return *this;
   }
 
-  Matrix<T> &affect_const(const Matrix<T> &a) {
+  This &affect_const(const This &a) {
     set_from(a);
     return *this;
   }
@@ -605,14 +604,14 @@ public:
   std::map<int, int> row_echelon_map;
   vi irow_echelon_map;
 
-  const Ring<T> *ring;
+  const BaseRing *ring;
   int n, m; // n rows, m cols
+  This &operator=(const This &a) { return affect_const(a); }
+
 private:
   void reset_ptrs() {
     REP (i, n) (*m_data.get())[i] = m_mem.get_ptr(m_off.r() + i, m_off.c());
   }
-
-  Matrix<T> &operator=(const Matrix<T> &a) = delete;
 
   SPTR(std::vector<T *>) m_data;
 
@@ -668,21 +667,23 @@ private:
   MatrixMem m_mem;
 };
 
-template <class T> void Matrix<T>::init_data() {
+template <class T, class BaseRing> void Matrix<T, BaseRing>::init_data() {
   if (n && m) {
     m_data.reset(new std::vector<T *>(n));
     reset_ptrs();
   }
 }
 
-template <class T> void Matrix<T>::init_objs() {
+template <class T, class BaseRing> void Matrix<T, BaseRing>::init_objs() {
   if (n && m) {
     m_mem.set_own(new std::vector<T>(n * m, ring->getZ()), m);
   }
   m_off = Offset(0, 0);
 }
 
-template <class T> void Matrix<T>::prepare_set(const Matrix<T> &a, int r0, int c0, int nr, int nc) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::prepare_set(const Matrix<T, BaseRing> &a, int r0, int c0, int nr,
+                                      int nc) {
   if (nr == -1) nr = a.getN() - r0;
   if (nc == -1) nc = a.getM() - c0;
   OPA_CHECK0(r0 + nr <= a.n);
@@ -696,7 +697,7 @@ template <class T> void Matrix<T>::prepare_set(const Matrix<T> &a, int r0, int c
   m_off = a.m_off + Offset(r0, c0);
 }
 
-template <class T> void Matrix<T>::copy(const Matrix<T> &a) {
+template <class T, class BaseRing> void Matrix<T, BaseRing>::copy(const Matrix<T, BaseRing> &a) {
   finalize();
   prepare_set(a, 0, 0, -1, -1);
   m_off = Offset(0, 0);
@@ -706,65 +707,74 @@ template <class T> void Matrix<T>::copy(const Matrix<T> &a) {
     for (int j = 0; j < m; ++j) get(i, j) = a(i, j);
 }
 
-template <class T> void Matrix<T>::set_from(const Matrix<T> &a, int r0, int c0, int nr, int nc) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::set_from(const Matrix<T, BaseRing> &a, int r0, int c0, int nr, int nc) {
   finalize();
   m_mem.set_const(a.m_mem);
   prepare_set(a, r0, c0, nr, nc);
   init_data();
 }
 
-template <class T> void Matrix<T>::set_mutable_from(Matrix<T> &&a, int r0, int c0, int nr, int nc) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::set_mutable_from(Matrix<T, BaseRing> &&a, int r0, int c0, int nr,
+                                           int nc) {
   finalize();
   m_mem.set(a.m_mem);
   prepare_set(a, r0, c0, nr, nc);
   init_data();
 }
 
-template <class T> void Matrix<T>::set_mutable_from(Matrix<T> &a, int r0, int c0, int nr, int nc) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::set_mutable_from(Matrix<T, BaseRing> &a, int r0, int c0, int nr, int nc) {
   finalize();
   m_mem.set(a.m_mem);
   prepare_set(a, r0, c0, nr, nc);
   init_data();
 }
 
-template <class T> Matrix<T> Matrix<T>::get_mutable(int r0, int c0, int nr, int nc) {
-  Matrix<T> res;
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::get_mutable(int r0, int c0, int nr, int nc) {
+  Matrix<T, BaseRing> res;
   res.set_mutable_from(*this, r0, c0, nr, nc);
   return res;
 }
-template <class T> Matrix<T> Matrix<T>::get_submatrix(int r0, int c0, int nr, int nc) const {
-  Matrix<T> res;
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::get_submatrix(int r0, int c0, int nr, int nc) const {
+  Matrix<T, BaseRing> res;
   res.set_from(*this, r0, c0, nr, nc);
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::get_mutable_col(int c) {
-  Matrix<T> res;
+template <class T, class BaseRing> Matrix<T, BaseRing> Matrix<T, BaseRing>::get_mutable_col(int c) {
+  Matrix<T, BaseRing> res;
   res.set_mutable_from(*this, 0, c, -1, 1);
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::get_mutable_row(int r) {
-  Matrix<T> res;
+template <class T, class BaseRing> Matrix<T, BaseRing> Matrix<T, BaseRing>::get_mutable_row(int r) {
+  Matrix<T, BaseRing> res;
   res.set_mutable_from(*this, r, 0, 1, -1);
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::get_col(int c) const {
-  Matrix<T> res;
+template <class T, class BaseRing> Matrix<T, BaseRing> Matrix<T, BaseRing>::get_col(int c) const {
+  Matrix<T, BaseRing> res;
   res.set_from(*this, 0, c, -1, 1);
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::get_row(int r) const {
-  Matrix<T> res;
+template <class T, class BaseRing> Matrix<T, BaseRing> Matrix<T, BaseRing>::get_row(int r) const {
+  Matrix<T, BaseRing> res;
   res.set_from(*this, r, 0, 1, -1);
   return res;
 }
 
-template <class T> Matrix<T>::Matrix(const Ring<T> *ring, int n, int m) { initialize(ring, n, m); }
+template <class T, class BaseRing> Matrix<T, BaseRing>::Matrix(const BaseRing *ring, int n, int m) {
+  initialize(ring, n, m);
+}
 
-template <class T> void Matrix<T>::initialize(const Ring<T> *ring, int n, int m) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::initialize(const BaseRing *ring, int n, int m) {
   OPA_CHECK0(ring != nullptr);
   this->ring = ring;
   this->n = n;
@@ -774,39 +784,42 @@ template <class T> void Matrix<T>::initialize(const Ring<T> *ring, int n, int m)
   init_data();
 }
 
-template <class T> void Matrix<T>::finalize() {
+template <class T, class BaseRing> void Matrix<T, BaseRing>::finalize() {
   m_data.reset();
   m_mem.reset();
 }
 
-template <class T> Matrix<T>::~Matrix() { finalize(); }
+template <class T, class BaseRing> Matrix<T, BaseRing>::~Matrix() { finalize(); }
 
-template <class T> int Matrix<T>::getN() const { return n; }
+template <class T, class BaseRing> int Matrix<T, BaseRing>::getN() const { return n; }
 
-template <class T> int Matrix<T>::getM() const { return m; }
+template <class T, class BaseRing> int Matrix<T, BaseRing>::getM() const { return m; }
 
-template <class T> Matrix<T> Matrix<T>::identity(const Ring<T> *ring, int n) {
-  Matrix<T> res(ring, n, n);
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::identity(const BaseRing *ring, int n) {
+  Matrix<T, BaseRing> res(ring, n, n);
   for (int i = 0; i < n; ++i) res.get(i, i) = ring->getE();
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::rand(const Ring<T> *ring, int n, int m) {
-  Matrix<T> res(ring, n, m);
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::rand(const BaseRing *ring, int n, int m) {
+  Matrix<T, BaseRing> res(ring, n, m);
 
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < m; ++j) res.get(i, j) = ring->getRand();
   return res;
 }
 
-template <class T> bool Matrix<T>::invert(Matrix<T> *res, T *res_det) const {
+template <class T, class BaseRing>
+bool Matrix<T, BaseRing>::invert(Matrix<T, BaseRing> *res, T *res_det) const {
   OPA_CHECK0(res || res_det);
   T det = ring->getE();
 
   OPA_CHECK0(n == m);
-  if (res) *res = Matrix<T>::identity(ring, n);
+  if (res) *res = Matrix<T, BaseRing>::identity(ring, n);
 
-  Matrix<T> cur = this->clone();
+  Matrix<T, BaseRing> cur = this->clone();
 
   for (int i = 0; i < n; ++i) {
     int u = -1;
@@ -895,22 +908,26 @@ template <class T> bool Matrix<T>::invert(Matrix<T> *res, T *res_det) const {
   return true;
 }
 
-template <class T> Matrix<T> &Matrix<T>::self_elem_mul(const Matrix<T> &a) {
+template <class T, class BaseRing>
+Matrix<T, BaseRing> &Matrix<T, BaseRing>::self_elem_mul(const Matrix<T, BaseRing> &a) {
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < m; ++j) get(i, j) = ring->mul(get(i, j), a.get(i, j));
   return *this;
 }
 
-template <class T> Matrix<T> &Matrix<T>::self_elem_addmul(const Matrix<T> &a, const T &c) {
+template <class T, class BaseRing>
+Matrix<T, BaseRing> &Matrix<T, BaseRing>::self_elem_addmul(const Matrix<T, BaseRing> &a,
+                                                           const T &c) {
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < m; ++j) get(i, j) = ring->add(get(i, j), ring->mul(c, a.get(i, j)));
   return *this;
 }
 
-template <class T> Matrix<T> Matrix<T>::mul(const Matrix<T> &a) const {
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::mul(const Matrix<T, BaseRing> &a) const {
   OPA_CHECK(m == a.n, m, n, a.n, a.m);
 
-  Matrix<T> res(ring, n, a.m);
+  Matrix<T, BaseRing> res(ring, n, a.m);
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < a.m; ++j) {
       T v = ring->getZ();
@@ -920,27 +937,30 @@ template <class T> Matrix<T> Matrix<T>::mul(const Matrix<T> &a) const {
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::add(const Matrix &a) const {
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::add(const Matrix &a) const {
   OPA_CHECK(m == a.m, m, n, a.n, a.m);
   OPA_CHECK(n == a.n, m, n, a.n, a.m);
 
-  Matrix<T> res(ring, n, m);
+  Matrix<T, BaseRing> res(ring, n, m);
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < a.m; ++j) res.get(i, j) = ring->add(get(i, j), a.get(i, j));
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::sub(const Matrix &a) const {
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::sub(const Matrix &a) const {
   OPA_CHECK0(m == a.m);
   OPA_CHECK0(n == a.n);
 
-  Matrix<T> res(ring, n, m);
+  Matrix<T, BaseRing> res(ring, n, m);
   for (int i = 0; i < n; ++i)
     for (int j = 0; j < a.m; ++j) res.get(i, j) = ring->sub(get(i, j), a.get(i, j));
   return res;
 }
 
-template <class T> std::string Matrix<T>::str(int nrows, bool header) const {
+template <class T, class BaseRing>
+std::string Matrix<T, BaseRing>::str(int nrows, bool header) const {
   std::ostringstream ss;
   ss << std::hex << std::showbase;
   if (nrows == -1) nrows = n;
@@ -962,9 +982,9 @@ template <class T> std::string Matrix<T>::str(int nrows, bool header) const {
   return ss.str();
 }
 
-template <class T> void Matrix<T>::disp() const { std::cout << str(); }
-template <class T>
-std::vector<T> Matrix<T>::solve_tri(const std::vector<T> &y, LowerType lower) const {
+template <class T, class BaseRing> void Matrix<T, BaseRing>::disp() const { std::cout << str(); }
+template <class T, class BaseRing>
+std::vector<T> Matrix<T, BaseRing>::solve_tri(const std::vector<T> &y, LowerType lower) const {
   OPA_CHECK0(y.size() == n);
   OPA_CHECK0(m == n);
   std::vector<T> x(m, ring->getZ());
@@ -980,7 +1000,8 @@ std::vector<T> Matrix<T>::solve_tri(const std::vector<T> &y, LowerType lower) co
   return x;
 }
 
-template <class T> std::vector<T> Matrix<T>::solve(std::vector<T> y) const {
+template <class T, class BaseRing>
+std::vector<T> Matrix<T, BaseRing>::solve(std::vector<T> y) const {
   OPA_CHECK0(y.size() == n);
   OPA_CHECK0(m <= n);
   std::vector<T> x(m, ring->getZ());
@@ -1078,7 +1099,7 @@ template <class T> std::vector<T> Matrix<T>::solve(std::vector<T> y) const {
   return x;
 }
 
-template <class T> int Matrix<T>::row_echelon(int n2, int m2) {
+template <class T, class BaseRing> int Matrix<T, BaseRing>::row_echelon(int n2, int m2) {
   if (n2 == -1) n2 = n;
   if (m2 == -1) m2 = m;
   row_echelon_map.clear();
@@ -1117,7 +1138,8 @@ template <class T> int Matrix<T>::row_echelon(int n2, int m2) {
   return nc;
 }
 
-template <class T> int Matrix<T>::row_echelon_gcd(T *det_res, int n2, int m2) {
+template <class T, class BaseRing>
+int Matrix<T, BaseRing>::row_echelon_gcd(T *det_res, int n2, int m2) {
   // Need to make use of step.coeff_mul and step.final_mul. Invalid in UFD
 
   if (n2 == -1) n2 = n;
@@ -1170,7 +1192,7 @@ template <class T> int Matrix<T>::row_echelon_gcd(T *det_res, int n2, int m2) {
   return nc;
 }
 
-template <class T> T Matrix<T>::get_det_row_echelon() {
+template <class T, class BaseRing> T Matrix<T, BaseRing>::get_det_row_echelon() {
   OPA_CHECK0(is_square());
   T det_mul;
   this->row_echelon_gcd(&det_mul);
@@ -1181,7 +1203,7 @@ template <class T> T Matrix<T>::get_det_row_echelon() {
   return det;
 }
 
-template <class T> T Matrix<T>::get_det() const {
+template <class T, class BaseRing> T Matrix<T, BaseRing>::get_det() const {
   OPA_CHECK0(is_square());
   T res;
   bool ok = invert(0, &res);
@@ -1189,52 +1211,56 @@ template <class T> T Matrix<T>::get_det() const {
   return res;
 }
 
-template <class T> void Matrix<T>::setCol(int colId, const std::vector<T> &tb, int start) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::setCol(int colId, const std::vector<T> &tb, int start) {
   OPA_CHECK0(start + tb.size() <= n);
   REP (i, tb.size()) get(start + i, colId) = tb[i];
 }
 
-template <class T> void Matrix<T>::setRow(int rowId, const std::vector<T> &tb, int start) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::setRow(int rowId, const std::vector<T> &tb, int start) {
   OPA_CHECK0(start + tb.size() <= m);
   REP (i, tb.size()) get(rowId, start + i) = tb[i];
 }
 
-template <class T> Matrix<T> Matrix<T>::transpose() const {
-  Matrix<T> res(ring, m, n);
+template <class T, class BaseRing> Matrix<T, BaseRing> Matrix<T, BaseRing>::transpose() const {
+  Matrix<T, BaseRing> res(ring, m, n);
   REP (i, n)
     REP (j, m) res.get(j, i) = get(i, j);
   return res;
 }
 
-template <class T> int Matrix<T>::rank(int n2, int m2) const {
-  Matrix<T> x = this->clone();
+template <class T, class BaseRing> int Matrix<T, BaseRing>::rank(int n2, int m2) const {
+  Matrix<T, BaseRing> x = this->clone();
   return x.row_echelon(n2, m2);
 }
 
-template <class T> T Matrix<T>::trace() const {
+template <class T, class BaseRing> T Matrix<T, BaseRing>::trace() const {
   OPA_CHECK0(n == m);
   T res = ring->getZ();
   REP (i, n) res = ring->add(res, get(i, i));
   return res;
 }
 
-template <class T> Matrix<T> Matrix<T>::identity(int n) const {
+template <class T, class BaseRing> Matrix<T, BaseRing> Matrix<T, BaseRing>::identity(int n) const {
   if (n == -1) n = this->n;
-  return Matrix<T>::identity(ring, n);
+  return Matrix<T, BaseRing>::identity(ring, n);
 }
 
-template <class T> Matrix<T> Matrix<T>::constant(const T &cv, int nr, int nc) const {
+template <class T, class BaseRing>
+Matrix<T, BaseRing> Matrix<T, BaseRing>::constant(const T &cv, int nr, int nc) const {
   if (nr == -1) nr = getN();
   if (nc == -1) nc = getM();
-  Matrix<T> res;
+  Matrix<T, BaseRing> res;
   res.initialize(ring, nr, nc);
   REP (i, nr)
     REP (j, nc) res(i, j) = cv;
   return res;
 }
 
-template <class T>
-bool Matrix<T>::reduce(Matrix<T> &other, int last_col, bool early_exit, Matrix<T> *output) const {
+template <class T, class BaseRing>
+bool Matrix<T, BaseRing>::reduce(Matrix<T, BaseRing> &other, int last_col, bool early_exit,
+                                 Matrix<T, BaseRing> *output) const {
   OPA_CHECK0(other.getM() <= getM());
   // should be a reduced row echelon matrix
   // That is, row_echelon must have been called before or row_echelon_map must
@@ -1274,7 +1300,7 @@ bool Matrix<T>::reduce(Matrix<T> &other, int last_col, bool early_exit, Matrix<T
   return ok;
 }
 
-template <class T> T Matrix<T>::get_det_slow() const {
+template <class T, class BaseRing> T Matrix<T, BaseRing>::get_det_slow() const {
   OPA_CHECK0(is_square());
   T res = ring->getZ();
   auto perm = utils::Range<int>::StepRange(0, n, 1).tb();
@@ -1288,7 +1314,8 @@ template <class T> T Matrix<T>::get_det_slow() const {
   return res;
 }
 
-template <class T> void Matrix<T>::set_submatrix(const Matrix<T> &a, int r0, int c0) {
+template <class T, class BaseRing>
+void Matrix<T, BaseRing>::set_submatrix(const Matrix<T, BaseRing> &a, int r0, int c0) {
   OPA_CHECK0(r0 + a.getN() <= getN());
   OPA_CHECK0(c0 + a.getM() <= getM());
 

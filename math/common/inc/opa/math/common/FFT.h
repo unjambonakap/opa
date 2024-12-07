@@ -8,16 +8,16 @@ OPA_NM_MATH_COMMON
 template <class T> class IFFTProvider {
 
 protected:
-  void configure(int npw, const Field<T> *f) {
+  void configure0(int npw, const Field<T> *f) {
     m_npw = npw;
     m_n = 1 << npw;
-    m_f = f;
+    m_f0 = f;
   }
 
 public:
   int m_npw;
   int m_n;
-  const Field<T> *m_f;
+  const Field<T> *m_f0;
 
   virtual std::vector<T> fft(const std::vector<T> &tb) const = 0;
   virtual std::vector<T> ifft(const std::vector<T> &tb, bool normalize = true) const = 0;
@@ -27,42 +27,29 @@ public:
     OPA_CHECK0(a.size() + b.size() - 1 <= m_n);
     auto ia = fft(a);
     auto ib = fft(b);
-    REP (i, m_n) ia[i] = m_f->mul(ia[i], ib[i]);
-    return ifft(ia);
+    REP (i, m_n) ia[i] = m_f0->mul(ia[i], ib[i]);
+    auto res = ifft(ia);
+    return res;
   }
 };
 
-template <class T, class F> class FFTProviderF {
+template <class T, class F> class FFTProviderF : public IFFTProvider<T> {
 
 protected:
   void configure(int npw, const F *f) {
-    m_npw = npw;
-    m_n = 1 << npw;
     m_f = f;
+    this->configure0(npw, f);
   }
 
 public:
-  int m_npw;
-  int m_n;
   const F *m_f;
-
-  virtual std::vector<T> fft(const std::vector<T> &tb) const = 0;
-  virtual std::vector<T> ifft(const std::vector<T> &tb, bool normalize = true) const = 0;
-
-  virtual std::vector<T> mul(const std::vector<T> &a, const std::vector<T> &b) const {
-
-    OPA_CHECK0(a.size() + b.size() - 1 <= m_n);
-    auto ia = fft(a);
-    auto ib = fft(b);
-    REP (i, m_n) ia[i] = m_f->mul(ia[i], ib[i]);
-    return ifft(ia);
-  }
 };
 
 template <class T> class FFTProvider : public FFTProviderF<T, Field<T> > {};
 
 template <class T, class F> class FFT2F : public FFTProviderF<T, F> {
   typedef std::vector<T> vec;
+  std::vector<T> w, dw, y, dy;
 
 public:
   FFT2F() {}
@@ -137,7 +124,12 @@ private:
   std::vector<T> m_wl;
   std::vector<T> m_iwl;
 };
-template <class T> class FFT2 : public FFT2F<T, Field<T> > {};
+template <class T> class FFT2 : public FFT2F<T, Field<T> > {
+
+public:
+  FFT2() {}
+  FFT2(const Field<T> *f, int npw) : FFT2F<T, Field<T> >(f, npw) {}
+};
 
 template <class T> class FFT2Dispatcher : public IFFTProvider<T> {
   std::vector<std::unique_ptr<IFFTProvider<T> > > _ffts;
@@ -145,22 +137,29 @@ template <class T> class FFT2Dispatcher : public IFFTProvider<T> {
 public:
   typedef std::function<IFFTProvider<T> *(int)> MakeProvider;
   FFT2Dispatcher(const Field<T> *f, int npw) {
-    REP (i, npw + 1) {
+    FOR (i, 4, npw + 1) {
       _ffts.emplace_back(new FFT2<T>(f, i));
     }
   }
 
   FFT2Dispatcher(int npw, const MakeProvider &provider) {
-    REP (i, npw + 1) {
+    FOR (i, 4, npw + 1) {
+      _ffts.emplace_back(provider(i));
+    }
+  }
+  template <class Provider> FFT2Dispatcher(int npw, const Provider &provider) {
+    FOR (i, 4, npw + 1) {
       _ffts.emplace_back(provider(i));
     }
   }
 
   const IFFTProvider<T> &sel(int a, int b = 1) const {
+
     int s = std::max(1, a) + std::max(1, b) - 2;
     int sz = s < 0 ? 0 : log2_high_bit(s) + 1;
-    OPA_CHECK0(sz < _ffts.size());
-    return *_ffts[sz];
+    for (auto &e : _ffts)
+      if (e->m_npw >= sz) return *e;
+    OPA_CHECK0(false);
   }
 
   std::vector<T> fft(const std::vector<T> &tb) const override { return sel(tb.size()).fft(tb); }

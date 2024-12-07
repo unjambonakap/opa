@@ -19,7 +19,7 @@ using namespace std;
 
 void testMatrix() {
   GF_p a(7);
-  PolyRing<u32> pr(a);
+  PolyRing<u32> pr(&a);
 
   std::vector<u32> tb = pr.rand(4).toVector();
   out(tb);
@@ -56,17 +56,17 @@ void testMatrix() {
 void testCyclicCode() {
   GF_p baseField(3);
   int d = 2;
-  GF_q<u32> extensionField(baseField, d);
+  GF_q<u32> extensionField{ &baseField, d};
 
   Poly<u32> tmp =
-    findMinimalPoly(extensionField, extensionField.getPrimitiveElem());
+    findMinimalPoly(&extensionField, extensionField.getPrimitiveElem());
   printf("MINIMAL POLY >>> \n");
   tmp.disp();
 
   int n = u32_faste(baseField.getSize().getu32(), d) - 1;
   int k = tmp.size();
 
-  CyclicCode<u32> c(baseField, tmp, n);
+  CyclicCode<u32> c(&baseField, tmp, n);
 
   std::vector<u32> tb = genRand(baseField.getSizeU32(), c.getNK());
   std::vector<u32> res;
@@ -138,7 +138,7 @@ void test() {
     GF_p a(11);
     int n = 120;
     int j0 = 1, t = 20;
-    BCHCode<u32> *bch = BCHCode<u32>::getNew(a, n, 1, t);
+    BCHCode<u32> *bch = BCHCode<u32>::getNew(&a, n, 1, t);
     printf("BCH CODE >>> n=%d, k=%d\n", bch->getN(), bch->getK());
 
     for (int tr = 0; tr < 100; ++tr) {
@@ -146,7 +146,7 @@ void test() {
       std::vector<u32> res;
 
       res = bch->encode(tb);
-      PolyRing<u32> pr(a);
+      PolyRing<u32> pr(&a);
 
       int weight = t;
       std::vector<u32> err = genRandWeight(n, weight, a);
@@ -198,7 +198,7 @@ void test_codechef_stepnum() {
   REP(i, N) REP(j, N) m(i, j) = (i + 1 == j || i - 1 == j) ? 1 : 0;
   Poly<u32> charPol = gfx_char_poly(m);
 
-  PolyRing<u32> pr(field);
+  PolyRing<u32> pr(&field);
   charPol = pr.import(charPol);
   auto x = pr.factor(charPol);
   charPol.disp();
@@ -232,12 +232,12 @@ void test_codechef_stepnum() {
   }
 
   auto poly = x.back();
-  GF_q<u32> gfq(field, poly);
+  GF_q<u32> gfq(&field, poly);
   typedef Poly<u32> T2;
   puts("PRIMITIVE ELEM");
   cout << gfq.getPrimitiveElem() << endl;
 
-  PolyRing<T2> r2(gfq);
+  PolyRing<T2> r2(&gfq);
   vector<T2> vecPoly;
   for (auto a : poly.toVector())
     vecPoly.pb(pr.constant(a));
@@ -297,13 +297,13 @@ void testMinimal() {
   typedef u32 T;
   typedef Poly<T> TExt;
   GF_p field(MOD);
-  PolyRing<T> pr(field);
+  PolyRing<T> pr(&field);
 
   Poly<T> irred = findIrred(field, 3);
-  GF_q<T> extField(field, irred);
-  PolyRing<TExt> extPr(extField);
+  GF_q<T> extField(&field, irred);
+  PolyRing<TExt> extPr(&extField);
 
-  Poly<TExt> irredEmbed = toExtField(extField, irred);
+  Poly<TExt> irredEmbed = toExtField(&extField, irred);
   Matrix<T> mat1(&field, 3, 3);
   std::vector<T> eVec;
   {
@@ -323,7 +323,7 @@ void testMinimal() {
   std::vector<vector<T> > mpIrred2;
   Poly<T> irred2 = findIrred(field, 3);
   {
-    Poly<TExt> embed = toExtField(extField, irred2);
+    Poly<TExt> embed = toExtField(&extField, irred2);
     auto factors = extPr.factor(embed);
     for (auto x : factors) {
       extPr.smonic(x);
@@ -338,9 +338,9 @@ void testMinimal() {
   Poly<T> irred12 = findIrred(field, 12);
 
   {
-    GF_q<T> bigField(field, irred12);
-    PolyRing<TExt> bigPr(bigField);
-    Poly<TExt> a = toExtField(bigField, irred);
+    GF_q<T> bigField(&field, irred12);
+    PolyRing<TExt> bigPr(&bigField);
+    Poly<TExt> a = toExtField(&bigField, irred);
     auto factors = bigPr.factor(a);
 
     Matrix<T> mat(&field, 12, 3);
@@ -356,15 +356,15 @@ void testMinimal() {
     out(res);
 
     puts("FOR IRRED2");
-    factors = bigPr.factor(toExtField(bigField, irred2));
-    GF_q<T> gf2(field, irred2);
-    Poly<TExt> poly2 = toExtField(gf2, irred2);
-    PolyRing<TExt> pr2(gf2);
+    factors = bigPr.factor(toExtField(&bigField, irred2));
+    GF_q<T> gf2(&field, irred2);
+    Poly<TExt> poly2 = toExtField(&gf2, irred2);
+    PolyRing<TExt> pr2(&gf2);
 
     for (auto x : factors) {
       bigPr.smonic(x);
       TExt p = bigField.neg(x.get(0));
-      cout << bigPr.eval(toExtField(bigField, irred2), p) << endl;
+      cout << bigPr.eval(toExtField(&bigField, irred2), p) << endl;
       cout << p << endl;
       TExt q = pr.mod(p, irred2);
       cout << q << endl;
@@ -395,9 +395,9 @@ int main() {
     GF_p a(7);
     int b = a.mul(5, 6);
 
-    PolyRing<u32> pr(a);
+    PolyRing<u32> pr(&a);
     Poly<u32> pmod = findIrred(a, 4);
-    GF_q<u32> gfq(a, pmod);
+    GF_q<u32> gfq(&a, pmod);
     Poly<u32> w = gfq.getPrimitiveElem();
 
     printf("IRRED: ");

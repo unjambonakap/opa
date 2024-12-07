@@ -180,19 +180,6 @@ BGFactors factor_large(const bignum &a) {
   return res;
 }
 
-u64 u32_faste(u32 a, u32 p, u32 mod) {
-  u64 x = 1;
-  for (; p; p >>= 1, a = (u64)a * a % mod)
-    if (p & 1) x = (u64)x * a % mod;
-  return x;
-}
-
-u32 u32_faste(u32 a, u32 p) {
-  u32 x = 1;
-  for (; p; p >>= 1, a = a * a)
-    if (p & 1) x = x * a;
-  return x;
-}
 
 std::vector<u32> genRand(u32 n, u32 sz) {
 
@@ -201,26 +188,6 @@ std::vector<u32> genRand(u32 n, u32 sz) {
   return tb;
 }
 
-u32 u32_gcd(u32 a, u32 b) {
-  if (a < b) std::swap(a, b);
-  return b ? u32_gcd(b, a % b) : a;
-}
-
-u32 u32_egcd(u32 a, u32 b, int &u, int &v) {
-  if (a < b) return u32_egcd(b, a, v, u);
-  return _u32_egcd(a, b, 1, 0, 0, 1, u, v);
-}
-
-u32 _u32_egcd(u32 a, u32 b, int ua, int va, int ub, int vb, int &u, int &v) {
-  if (b == 0) {
-    u = ua;
-    v = va;
-    return a;
-  }
-  u32 m = a / b;
-  return _u32_egcd(b, a % b, ub, vb, ua - m * ub, va - m * vb, u, v);
-}
-u32 u32_lcm(u32 a, u32 b) { return a / u32_gcd(a, b) * b; }
 
 bignum gen_prime(const bignum &n) {
   while (true) {

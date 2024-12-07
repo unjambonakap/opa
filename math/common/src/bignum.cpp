@@ -214,6 +214,7 @@ void bignum::ssqrt() { mpz_sqrt(a, a); }
 
 bignum bignum::rand() const {
   OPA_CHECK0(g_bignum_rand_state != 0);
+  OPA_CHECK0(*this != 0);
   DO_MPZ_OP(mpz_urandomm(res.a, g_bignum_rand_state, a), res);
 }
 
